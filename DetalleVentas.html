@@ -1,0 +1,153 @@
+/**
+ * =========================================
+ * DETALLE DE VENTAS
+ * =========================================
+ */
+
+/**
+ * Obtiene todas las líneas del detalle
+ */
+function obtenerDetalleVentas() {
+
+  return leerObjetos(SHEETS.DETALLE_VENTAS)
+    .map(normalizarDetalleVenta_);
+
+}
+
+/**
+ * Obtiene el detalle de una venta
+ */
+function obtenerDetalleVenta(idVenta){
+
+  return obtenerDetalleVentas()
+    .filter(function(item){
+
+      return String(item.IDVenta) === String(idVenta);
+
+    });
+
+}
+
+/**
+ * Guarda una línea del detalle
+ */
+function guardarDetalleVenta(detalle){
+
+  const nuevoID = generarID(
+    "DV",
+    "SiguienteDetalleVenta"
+  );
+
+  agregarFila(
+
+    SHEETS.DETALLE_VENTAS,
+
+    [
+
+      nuevoID,
+
+      detalle.IDVenta,
+
+      detalle.IDProducto,
+
+      detalle.NombreProducto,
+
+      Number(detalle.Cantidad),
+
+      Number(detalle.PrecioUnitario),
+
+      Number(detalle.Subtotal)
+
+    ]
+
+  );
+
+  return{
+
+    ok:true,
+
+    id:nuevoID
+
+  };
+
+}
+
+/**
+ * Guarda varios productos
+ */
+function guardarDetallesVenta(idVenta,productos){
+
+  productos.forEach(function(producto){
+
+    guardarDetalleVenta({
+
+      IDVenta:idVenta,
+
+      IDProducto:producto.IDProducto,
+
+      NombreProducto:producto.NombreProducto,
+
+      Cantidad:producto.Cantidad,
+
+      PrecioUnitario:producto.PrecioUnitario,
+
+      Subtotal:producto.Subtotal
+
+    });
+
+  });
+
+}
+
+/**
+ * Elimina el detalle de una venta
+ */
+function eliminarDetalleVenta(idVenta){
+
+  const hoja =
+      obtenerHoja(SHEETS.DETALLE_VENTAS);
+
+  const datos =
+      hoja.getDataRange().getValues();
+
+  for(let i=datos.length-1;i>=1;i--){
+
+    if(
+
+      String(datos[i][1])===String(idVenta)
+
+    ){
+
+      hoja.deleteRow(i+1);
+
+    }
+
+  }
+
+}
+
+/*====================================
+=            HELPERS
+====================================*/
+
+function normalizarDetalleVenta_(item){
+
+  return{
+
+    ID:String(item.ID||""),
+
+    IDVenta:String(item.IDVenta||""),
+
+    IDProducto:String(item.IDProducto||""),
+
+    NombreProducto:String(item.NombreProducto||""),
+
+    Cantidad:Number(item.Cantidad||0),
+
+    PrecioUnitario:Number(item.PrecioUnitario||0),
+
+    Subtotal:Number(item.Subtotal||0)
+
+  };
+
+}

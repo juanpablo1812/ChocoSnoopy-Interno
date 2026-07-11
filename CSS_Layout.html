@@ -1,0 +1,101 @@
+<style>
+
+/*====================================
+=             APP                    =
+====================================*/
+
+#app{
+
+    width:min(96%,1100px);
+
+    margin:auto;
+
+    padding:18px 0 95px;
+
+}
+
+/*====================================
+=            VISTAS                  =
+====================================*/
+
+.view{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:18px;
+
+}
+
+.view-header{
+
+    display:flex;
+
+    flex-direction:column;
+
+}
+
+.view-content{
+
+    display:flex;
+
+    flex-direction:column;
+
+}
+
+/*====================================
+=            TOOLBAR                 =
+====================================*/
+
+.toolbar{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:14px;
+
+}
+
+/*====================================
+=          RESPONSIVE                =
+====================================*/
+
+@media (max-width:600px){
+
+    #app{
+
+        width:96%;
+
+    }
+
+    .grid2{
+
+        grid-template-columns:1fr;
+
+    }
+
+}
+
+@media (min-width:601px) and (max-width:900px){
+
+    #app{
+
+        width:92%;
+
+    }
+
+}
+
+@media (min-width:901px){
+
+    #app{
+
+        width:min(92%,1100px);
+
+    }
+
+}
+
+</style>

@@ -1,0 +1,657 @@
+<style>
+
+/*====================================
+=           DASHBOARD
+====================================*/
+
+/*====================================
+=        TARJETAS GENERALES
+====================================*/
+
+.item-card{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:18px;
+
+    padding:22px;
+
+    background:white;
+
+    border-radius:20px;
+
+    box-shadow:var(--shadow);
+
+    transition:var(--transition);
+
+}
+
+.item-card:hover{
+
+    transform:translateY(-2px);
+
+    box-shadow:0 12px 28px rgba(0,0,0,.12);
+
+}
+
+.item-header{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:flex-start;
+
+    gap:16px;
+
+}
+
+.item-info{
+
+    flex:1;
+
+}
+
+.item-title{
+
+    font-size:1.15rem;
+
+    font-weight:700;
+
+    color:var(--text);
+
+    margin-bottom:4px;
+
+}
+
+.item-subtitle{
+
+    font-size:.92rem;
+
+    opacity:.7;
+
+}
+
+.item-status{
+
+    padding:6px 14px;
+
+    border-radius:999px;
+
+    font-size:.78rem;
+
+    font-weight:600;
+
+    white-space:nowrap;
+
+}
+
+.status-success{
+
+    background:#DDF6E8;
+
+    color:#18794E;
+
+}
+
+.status-warning{
+
+    background:#FFF3D6;
+
+    color:#A96B00;
+
+}
+
+.status-danger{
+
+    background:#FFE2E2;
+
+    color:#C62828;
+
+}
+
+.item-metrics{
+
+    display:grid;
+
+    grid-template-columns:repeat(3,1fr);
+
+    gap:12px;
+
+}
+
+.metric{
+
+    background:#F8F8F8;
+
+    border-radius:16px;
+
+    padding:14px;
+
+    text-align:center;
+
+    transition:var(--transition);
+
+}
+
+.metric-label{
+
+    font-size:.82rem;
+
+    opacity:.65;
+
+    margin-bottom:6px;
+
+}
+
+.metric-value{
+
+    font-size:1.1rem;
+
+    font-weight:700;
+
+}
+
+.item-actions{
+
+    display:flex;
+
+    gap:10px;
+
+    flex-wrap:wrap;
+
+}
+
+.item-actions .btn{
+
+    flex:1;
+
+    min-width:120px;
+
+}
+
+.cards-list{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:18px;
+
+}
+
+
+
+/*====================================
+=           PRODUCTOS
+====================================*/
+
+
+
+/*====================================
+=          INVENTARIO
+====================================*/
+
+/* Lista */
+
+/* Tarjeta en alerta */
+
+.item-card.alerta{
+
+    border-left:6px solid #F6B93B;
+
+    background:#FFFDF8;
+
+}
+
+/* Tarjeta inactiva */
+
+.item-card.inactiva{
+
+    opacity:.78;
+
+}
+
+/* Métrica del stock */
+
+.metric-value.stock-bajo{
+
+    color:#D84315;
+
+}
+
+.metric-value.stock-normal{
+
+    color:var(--text);
+
+}
+
+/* Botones */
+
+
+/* Responsive */
+
+@media(max-width:700px){
+
+    #listaInventario{
+
+        gap:14px;
+
+    }
+
+}
+
+
+
+/*====================================
+=             VENTAS
+====================================*/
+
+/* Tarjetas */
+
+.venta-card{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:14px;
+
+    cursor:pointer;
+
+    border-left:6px solid var(--primary);
+
+    transition:var(--transition);
+
+}
+
+.venta-card:hover{
+
+    border-left-color:var(--accent);
+
+}
+
+.venta-top{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:flex-start;
+
+    gap:15px;
+
+}
+
+.venta-top strong{
+
+    font-size:1rem;
+
+    font-weight:600;
+
+}
+
+.venta-top small{
+
+    opacity:.7;
+
+}
+
+.venta-bottom{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    font-size:.9rem;
+
+    opacity:.75;
+
+}
+
+/* Total */
+
+.venta-total{
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    text-align:center;
+
+    padding:26px;
+
+    background:linear-gradient(
+        135deg,
+        var(--primary),
+        #FFE8EE
+    );
+
+    border:2px solid #FFD8E2;
+
+    border-radius:18px;
+
+}
+
+.venta-total small{
+
+    display:block;
+
+    margin-bottom:8px;
+
+    font-size:.85rem;
+
+    opacity:.7;
+
+}
+
+.venta-total strong{
+
+    display:block;
+
+    font-size:2rem;
+
+    font-weight:700;
+
+    color:var(--accent);
+
+}
+
+/* Modal */
+
+.modal-venta{
+
+    max-width:760px;
+
+}
+
+.modal-venta .modal-body{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:24px;
+
+}
+
+.section-title{
+
+    margin:6px 0 -8px;
+
+    font-size:1rem;
+
+    font-weight:700;
+
+    color:var(--text);
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+}
+
+.section-title::after{
+
+    content:"";
+
+    flex:1;
+
+    height:1px;
+
+    background:#ECECEC;
+
+}
+
+/* Lista dinámica */
+
+#listaProductosVenta{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:16px;
+
+    margin-top:15px;
+
+    margin-bottom:20px;
+
+}
+
+/* Producto */
+
+.producto-venta{
+
+    background:#FAFAFA;
+
+    border:1px solid #EEEEEE;
+
+    border-radius:18px;
+
+    padding:20px;
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:16px;
+
+    transition:var(--transition);
+
+}
+
+.producto-venta:hover{
+
+    border-color:var(--primary);
+
+}
+
+/* Encabezado */
+
+.producto-venta-header{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+}
+
+/* Fila */
+
+.producto-venta-row{
+
+    display:grid;
+
+    grid-template-columns:2fr 100px;
+
+    gap:12px;
+
+}
+
+/* Resumen */
+
+.producto-venta-footer{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    font-size:.95rem;
+
+}
+
+/* Subtotal */
+
+.subtotal-producto{
+
+    font-weight:700;
+
+    color:var(--accent);
+
+}
+
+/* Botón eliminar */
+
+.btn-eliminar-producto{
+
+    width:40px;
+
+    height:40px;
+
+    border:none;
+
+    border-radius:12px;
+
+    background:#FFEAEA;
+
+    color:#D32F2F;
+
+    cursor:pointer;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    transition:.25s;
+
+}
+
+.btn-eliminar-producto:hover{
+
+    background:#FFD6D6;
+
+    transform:scale(1.05);
+
+}
+
+/* Agregar */
+
+#btnAgregarProductoVenta{
+
+    width:100%;
+
+    margin-top:4px;
+
+    padding:16px;
+
+    border:2px dashed var(--primary);
+
+    background:white;
+
+}
+
+/* Historial */
+
+.venta-estado{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    padding:6px 12px;
+
+    border-radius:50px;
+
+    font-size:.8rem;
+
+    font-weight:600;
+
+}
+
+.estado-pendiente{
+
+    background:#FFF3CD;
+
+    color:#8A6D3B;
+
+}
+
+.estado-entregado{
+
+    background:#D4EDDA;
+
+    color:#155724;
+
+}
+
+.estado-cancelado{
+
+    background:#F8D7DA;
+
+    color:#721C24;
+
+}
+
+/* Responsive */
+
+@media(max-width:700px){
+
+    .producto-venta-row{
+
+        grid-template-columns:1fr;
+
+    }
+    .item-metrics{
+
+        grid-template-columns:1fr;
+
+    }
+
+    .item-actions{
+
+        flex-direction:column;
+
+    }
+
+    .item-actions .btn{
+
+        width:100%;
+
+    }
+
+}
+
+.producto-venta{
+
+    animation:fadeProducto .25s ease;
+
+}
+
+@keyframes fadeProducto{
+
+    from{
+
+        opacity:0;
+
+        transform:translateY(10px);
+
+    }
+
+    to{
+
+        opacity:1;
+
+        transform:translateY(0);
+
+    }
+
+}
+
+</style>

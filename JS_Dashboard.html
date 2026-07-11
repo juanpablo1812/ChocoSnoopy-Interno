@@ -1,0 +1,147 @@
+<script>
+
+/*====================================
+=         DASHBOARD
+====================================*/
+
+const Dashboard = {
+
+    iniciar(){
+
+        API.obtenerDashboard(Dashboard.mostrar, Dashboard.error);
+
+    },
+
+    mostrar(datos){
+
+        if(!datos || !datos.config){
+
+            Dashboard.error(new Error("Datos del dashboard inválidos"));
+            return;
+
+        }
+
+        Dashboard.renderHeader(datos.config);
+        Dashboard.renderResumen(datos);
+        Dashboard.renderAlertas(datos.alertas || []);
+
+    },
+
+    renderHeader(config){
+
+        const nombreNegocio = document.getElementById("nombreNegocio");
+        const logoNegocio = document.getElementById("logoNegocio");
+
+        if(nombreNegocio){
+            nombreNegocio.textContent = config.nombreNegocio || "Chocosnoopy";
+        }
+
+        if(logoNegocio){
+
+            if(config.logo){
+
+                logoNegocio.src = config.logo;
+                logoNegocio.alt = config.nombreNegocio || "Logo";
+                logoNegocio.style.display = "block";
+
+            }else{
+
+                logoNegocio.removeAttribute("src");
+                logoNegocio.style.display = "none";
+
+            }
+
+        }
+
+    },
+
+    renderResumen(datos){
+
+        const hoy = datos.hoy || {};
+        const semana = datos.semana || {};
+        const mes = datos.mes || {};
+
+        const ventasHoy = document.getElementById("ventasHoy");
+        const ingresosHoy = document.getElementById("ingresosHoy");
+        const gananciaHoy = document.getElementById("gananciaHoy");
+
+        const ventasSemana = document.getElementById("ventasSemana");
+        const ingresosSemana = document.getElementById("ingresosSemana");
+        const gananciaSemana = document.getElementById("gananciaSemana");
+
+        const ventasMes = document.getElementById("ventasMes");
+        const ingresosMes = document.getElementById("ingresosMes");
+        const gananciaMes = document.getElementById("gananciaMes");
+
+        if(ventasHoy) ventasHoy.textContent = numeroSeguro(hoy.ventas, 0);
+        if(ingresosHoy) ingresosHoy.textContent = dinero(numeroSeguro(hoy.ingresos, 0));
+        if(gananciaHoy) gananciaHoy.textContent = dinero(numeroSeguro(hoy.ganancia, 0));
+
+        if(ventasSemana) ventasSemana.textContent = numeroSeguro(semana.ventas, 0);
+        if(ingresosSemana) ingresosSemana.textContent = dinero(numeroSeguro(semana.ingresos, 0));
+        if(gananciaSemana) gananciaSemana.textContent = dinero(numeroSeguro(semana.ganancia, 0));
+
+        if(ventasMes) ventasMes.textContent = numeroSeguro(mes.ventas, 0);
+        if(ingresosMes) ingresosMes.textContent = dinero(numeroSeguro(mes.ingresos, 0));
+        if(gananciaMes) gananciaMes.textContent = dinero(numeroSeguro(mes.ganancia, 0));
+
+    },
+
+    renderAlertas(alertas){
+
+        const contenedor = document.getElementById("listaAlertas");
+
+        if(!contenedor){
+            return;
+        }
+
+        if(!Array.isArray(alertas) || alertas.length === 0){
+
+            contenedor.innerHTML = `
+                <div class="empty">
+                    <span class="material-symbols-outlined">inventory_2</span>
+                    <h3>Todo está en orden</h3>
+                    <p>No hay materias primas por debajo del mínimo.</p>
+                </div>
+            `;
+
+            return;
+
+        }
+
+        let html = "";
+
+        alertas.forEach(function(item){
+
+            html += `
+
+                <div class="alert">
+
+                    <span>${escapeHTML(item.nombre)}</span>
+
+                    <span class="badge">
+
+                        ${numeroSeguro(item.stock, 0)} ${escapeHTML(item.unidad)}
+
+                    </span>
+
+                </div>
+
+            `;
+
+        });
+
+        contenedor.innerHTML = html;
+
+    },
+
+    error(error){
+
+        console.error(error);
+        mostrarToast("No se pudo cargar el Dashboard");
+
+    }
+
+};
+
+</script>

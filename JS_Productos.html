@@ -1,0 +1,879 @@
+<script>
+
+/*====================================
+=          PRODUCTOS
+====================================*/
+
+const Productos = {
+
+    productos: [],
+    materiasPrimas: [],
+    filtro: "todos",
+    busqueda: "",
+
+    iniciar(){
+
+        Productos.vincularEventos();
+        Productos.cargarDatos();
+
+    },
+
+    vincularEventos(){
+
+        const buscador = document.getElementById("buscadorProductos");
+
+        if(buscador){
+
+            buscador.addEventListener("input", function(){
+
+                Productos.busqueda = this.value;
+                Productos.renderLista();
+
+            });
+
+        }
+
+        document
+            .querySelectorAll("#chipsProductos .chip")
+            .forEach(function(chip){
+
+                chip.addEventListener("click", function(){
+
+                    document
+                        .querySelectorAll("#chipsProductos .chip")
+                        .forEach(function(item){
+                            item.classList.remove("active");
+                        });
+
+                    this.classList.add("active");
+                    Productos.filtro = this.dataset.filtro || "todos";
+                    Productos.renderLista();
+
+                });
+
+            });
+
+        const botonNuevo = document.getElementById("btnNuevoProducto");
+
+        if(botonNuevo){
+
+            botonNuevo.addEventListener("click", function(){
+                Productos.abrirNuevo();
+            });
+
+        }
+
+        const botonCerrar = document.getElementById("btnCerrarModalProducto");
+
+        if(botonCerrar){
+
+            botonCerrar.addEventListener("click", function(){
+                Productos.cerrarModal();
+            });
+
+        }
+
+        const botonCancelar = document.getElementById("btnCancelarProducto");
+
+        if(botonCancelar){
+
+            botonCancelar.addEventListener("click", function(){
+                Productos.cerrarModal();
+            });
+
+        }
+
+        const botonAgregar = document.getElementById("btnAgregarIngrediente");
+
+        if(botonAgregar){
+
+            botonAgregar.addEventListener("click", function(){
+                Productos.agregarFilaReceta();
+            });
+
+        }
+
+        const modal = document.getElementById("modalProducto");
+
+        if(modal){
+
+            modal.addEventListener("click", function(event){
+
+                if(event.target === modal){
+                    Productos.cerrarModal();
+                }
+
+            });
+
+        }
+
+        const form = document.getElementById("formProducto");
+
+        if(form){
+
+            form.addEventListener("submit", function(event){
+                Productos.guardar(event);
+            });
+
+        }
+
+        const listaProductos = document.getElementById("listaProductos");
+
+        if(listaProductos){
+
+            listaProductos.addEventListener("click", function(event){
+
+                const boton = event.target.closest("[data-accion]");
+
+                if(!boton){
+                    return;
+                }
+
+                const accion = boton.dataset.accion;
+                const id = boton.dataset.id;
+
+                if(accion === "editar"){
+                    Productos.abrirEditar(id);
+                }
+
+                if(accion === "duplicar"){
+                    Productos.duplicar(id);
+                }
+
+                if(accion === "desactivar" || accion === "activar"){
+                    Productos.cambiarEstado(id);
+                }
+
+            });
+
+        }
+
+        const listaRecetas = document.getElementById("listaRecetas");
+
+        if(listaRecetas){
+
+            listaRecetas.addEventListener("input", function(){
+
+                Productos.calcularVistaPrevia();
+
+            });
+
+            listaRecetas.addEventListener("change", function(){
+
+                Productos.calcularVistaPrevia();
+
+            });
+
+            listaRecetas.addEventListener("click", function(event){
+
+                const boton = event.target.closest("[data-accion-receta]");
+
+                if(!boton){
+                    return;
+                }
+
+                if(boton.dataset.accionReceta === "quitar"){
+
+                    const fila = boton.closest(".recipe-row");
+
+                    if(fila){
+                        fila.remove();
+                    }
+
+                    Productos.asegurarFilaReceta();
+                    Productos.calcularVistaPrevia();
+
+                }
+
+            });
+
+        }
+
+        const precio = document.getElementById("productoPrecioVenta");
+
+        if(precio){
+
+            precio.addEventListener("input", function(){
+                Productos.calcularVistaPrevia();
+            });
+
+        }
+
+    },
+
+    cargarDatos(){
+
+        mostrarLoader();
+
+        API.obtenerDatosProductos(function(datos){
+
+            ocultarLoader();
+
+            Productos.productos = Array.isArray(datos.productos) ? datos.productos : [];
+            Productos.materiasPrimas = Array.isArray(datos.materiasPrimas) ? datos.materiasPrimas : [];
+
+            Productos.renderLista();
+
+        }, function(error){
+
+            ocultarLoader();
+            console.error(error);
+            mostrarToast("No se pudieron cargar los productos");
+
+        });
+
+    },
+
+    renderLista(){
+
+        const contenedor = document.getElementById("listaProductos");
+
+        if(!contenedor){
+            return;
+        }
+
+        const productosFiltrados = Productos.productos
+            .filter(function(producto){
+
+                const texto = (
+                    textoSeguro(producto.Nombre) + " " +
+                    textoSeguro(producto.Categoria) + " " +
+                    textoSeguro(producto.Estado)
+                ).toLowerCase();
+
+                const coincideBusqueda = texto.includes(
+                    textoSeguro(Productos.busqueda).toLowerCase()
+                );
+
+                const estado = textoSeguro(producto.Estado).toLowerCase();
+
+                let coincideFiltro = true;
+
+                if(Productos.filtro === "activos"){
+                    coincideFiltro = estado === "activo";
+                }
+
+                if(Productos.filtro === "inactivos"){
+                    coincideFiltro = estado === "inactivo";
+                }
+
+                return coincideBusqueda && coincideFiltro;
+
+            })
+            .sort(function(a, b){
+                return textoSeguro(a.Nombre).localeCompare(textoSeguro(b.Nombre), "es");
+            });
+
+        if(Productos.productos.length === 0){
+
+            contenedor.innerHTML = `
+                <div class="empty">
+                    <span class="material-symbols-outlined">inventory_2</span>
+                    <h3>Aún no tienes productos</h3>
+                    <p>Pulsa el botón + para crear el primero.</p>
+                </div>
+            `;
+            return;
+
+        }
+
+        if(productosFiltrados.length === 0){
+
+            contenedor.innerHTML = `
+                <div class="empty">
+                    <span class="material-symbols-outlined">search_off</span>
+                    <h3>No hay coincidencias</h3>
+                    <p>Prueba con otro filtro o término de búsqueda.</p>
+                </div>
+            `;
+            return;
+
+        }
+
+        contenedor.innerHTML = productosFiltrados
+            .map(function(producto){
+                return Productos.tarjetaProducto(producto);
+            })
+            .join("");
+
+    },
+
+    tarjetaProducto(producto){
+
+        const estado =
+            textoSeguro(producto.Estado).toLowerCase()==="activo";
+
+        const claseEstado =
+            estado ? "status-success" : "status-danger";
+
+        const textoEstado =
+            estado ? "Activo" : "Inactivo";
+
+        const accionEstado =
+            estado ? "desactivar" : "activar";
+
+        const recetas =
+            Array.isArray(producto.Recetas)
+                ? producto.Recetas.length
+                : 0;
+
+        return `
+
+            <article class="item-card">
+
+                <div class="item-header">
+
+                    <div class="item-info">
+
+                        <div class="item-title">
+
+                            ${escapeHTML(producto.Nombre)}
+
+                        </div>
+
+                        <div class="item-subtitle">
+
+                            ${escapeHTML(producto.Categoria || "Sin categoría")}
+
+                            · ${recetas} materias primas
+
+                        </div>
+
+                    </div>
+
+                    <span class="item-status ${claseEstado}">
+
+                        ${textoEstado}
+
+                    </span>
+
+                </div>
+
+                <div class="item-metrics">
+
+                    <div class="metric">
+
+                        <div class="metric-label">
+
+                            Precio
+
+                        </div>
+
+                        <div class="metric-value">
+
+                            ${dinero(producto.PrecioVenta)}
+
+                        </div>
+
+                    </div>
+
+                    <div class="metric">
+
+                        <div class="metric-label">
+
+                            Costo
+
+                        </div>
+
+                        <div class="metric-value">
+
+                            ${dinero(producto.CostoProduccion)}
+
+                        </div>
+
+                    </div>
+
+                    <div class="metric">
+
+                        <div class="metric-label">
+
+                            Ganancia
+
+                        </div>
+
+                        <div class="metric-value">
+
+                            ${dinero(producto.Ganancia)}
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="item-actions">
+
+                    <button
+                        class="btn btn-secondary"
+                        data-accion="editar"
+                        data-id="${escapeHTML(producto.ID)}">
+
+                        Editar
+
+                    </button>
+
+                    <button
+                        class="btn btn-secondary"
+                        data-accion="duplicar"
+                        data-id="${escapeHTML(producto.ID)}">
+
+                        Duplicar
+
+                    </button>
+
+                    <button
+                        class="btn ${estado ? "btn-danger" : "btn-primary"}"
+                        data-accion="${accionEstado}"
+                        data-id="${escapeHTML(producto.ID)}">
+
+                        ${estado ? "Desactivar" : "Activar"}
+
+                    </button>
+
+                </div>
+
+            </article>
+
+        `;
+
+    },
+
+    abrirNuevo(){
+
+        Productos.productoEditando = null;
+
+        const titulo = document.getElementById("tituloModalProducto");
+
+        if(titulo){
+            titulo.textContent = "Nuevo producto";
+        }
+
+        Productos.limpiarFormulario();
+        Productos.agregarFilaReceta();
+        Productos.calcularVistaPrevia();
+        abrirModal("modalProducto");
+
+    },
+
+    abrirEditar(idProducto){
+
+        const producto = Productos.productos.find(function(item){
+            return String(item.ID) === String(idProducto);
+        });
+
+        if(!producto){
+
+            mostrarToast("No se encontró el producto");
+            return;
+
+        }
+
+        Productos.productoEditando = producto;
+
+        const titulo = document.getElementById("tituloModalProducto");
+
+        if(titulo){
+            titulo.textContent = "Editar producto";
+        }
+
+        Productos.limpiarFormulario();
+
+        const id = document.getElementById("productoId");
+        const nombre = document.getElementById("productoNombre");
+        const categoria = document.getElementById("productoCategoria");
+        const precio = document.getElementById("productoPrecioVenta");
+        const estado = document.getElementById("productoEstado");
+
+        if(id) id.value = producto.ID || "";
+        if(nombre) nombre.value = producto.Nombre || "";
+        if(categoria) categoria.value = producto.Categoria || "";
+        if(precio) precio.value = numeroSeguro(producto.PrecioVenta, 0);
+        if(estado) estado.value = producto.Estado || "Activo";
+
+        const listaRecetas = document.getElementById("listaRecetas");
+
+        if(listaRecetas){
+            listaRecetas.innerHTML = "";
+        }
+
+        const recetas = Array.isArray(producto.Recetas) ? producto.Recetas : [];
+
+        if(recetas.length === 0){
+            Productos.agregarFilaReceta();
+        }else{
+            recetas.forEach(function(receta){
+                Productos.agregarFilaReceta(receta);
+            });
+        }
+
+        Productos.calcularVistaPrevia();
+        abrirModal("modalProducto");
+
+    },
+
+    limpiarFormulario(){
+
+        const form = document.getElementById("formProducto");
+
+        if(form){
+            form.reset();
+        }
+
+        const id = document.getElementById("productoId");
+        const costo = document.getElementById("productoCostoPreview");
+        const ganancia = document.getElementById("productoGananciaPreview");
+        const listaRecetas = document.getElementById("listaRecetas");
+
+        if(id) id.value = "";
+        if(costo) costo.textContent = "$0";
+        if(ganancia) ganancia.textContent = "$0";
+        if(listaRecetas) listaRecetas.innerHTML = "";
+
+    },
+
+    cerrarModal(){
+
+        cerrarModal("modalProducto");
+
+    },
+
+    agregarFilaReceta(receta = {}){
+
+        const lista = document.getElementById("listaRecetas");
+
+        if(!lista){
+            return;
+        }
+
+        const fila = document.createElement("div");
+        fila.className = "recipe-row";
+
+        fila.innerHTML = `
+
+            <div class="form-group">
+
+                <label>Materia prima</label>
+
+                <select class="form-select recipe-material"></select>
+
+                <small class="recipe-unit">Unidad: -</small>
+
+            </div>
+
+            <div class="form-group">
+
+                <label>Cantidad</label>
+
+                <input
+                    class="form-control recipe-cantidad"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    placeholder="0"
+                    value="${receta.Cantidad !== undefined ? escapeHTML(receta.Cantidad) : ""}">
+
+            </div>
+
+            <button
+                type="button"
+                class="btn btn-secondary recipe-remove"
+                data-accion-receta="quitar">
+
+                Quitar
+
+            </button>
+
+        `;
+
+        lista.appendChild(fila);
+
+        const select = fila.querySelector(".recipe-material");
+        const cantidad = fila.querySelector(".recipe-cantidad");
+        const botonQuitar = fila.querySelector(".recipe-remove");
+
+        Productos.poblarSelectMaterias(select, receta.IDMateriaPrima || "");
+
+        select.addEventListener("change", function(){
+
+            Productos.actualizarUnidadFila(fila);
+            Productos.calcularVistaPrevia();
+
+        });
+
+        cantidad.addEventListener("input", function(){
+            Productos.calcularVistaPrevia();
+        });
+
+        botonQuitar.addEventListener("click", function(){
+
+            fila.remove();
+            Productos.asegurarFilaReceta();
+            Productos.calcularVistaPrevia();
+
+        });
+
+        Productos.actualizarUnidadFila(fila);
+
+    },
+
+    asegurarFilaReceta(){
+
+        const lista = document.getElementById("listaRecetas");
+
+        if(!lista){
+            return;
+        }
+
+        const filas = lista.querySelectorAll(".recipe-row");
+
+        if(filas.length === 0){
+            Productos.agregarFilaReceta();
+        }
+
+    },
+
+    poblarSelectMaterias(select, seleccionado){
+
+        if(!select){
+            return;
+        }
+
+        let html = '<option value="">Selecciona una materia prima</option>';
+
+        Productos.materiasPrimas.forEach(function(materia){
+
+            const estado = textoSeguro(materia.Estado).toLowerCase();
+            const etiquetaEstado = estado === "inactivo" ? " (Inactiva)" : "";
+
+            html += `
+                <option value="${escapeHTML(materia.ID)}">
+                    ${escapeHTML(materia.Nombre)} - ${escapeHTML(materia.Unidad)}${etiquetaEstado}
+                </option>
+            `;
+
+        });
+
+        select.innerHTML = html;
+        select.value = seleccionado || "";
+
+    },
+
+    obtenerMateriaPrima(idMateriaPrima){
+
+        return Productos.materiasPrimas.find(function(item){
+            return String(item.ID) === String(idMateriaPrima);
+        });
+
+    },
+
+    actualizarUnidadFila(fila){
+
+        if(!fila){
+            return;
+        }
+
+        const select = fila.querySelector(".recipe-material");
+        const etiqueta = fila.querySelector(".recipe-unit");
+
+        if(!select || !etiqueta){
+            return;
+        }
+
+        const materia = Productos.obtenerMateriaPrima(select.value);
+
+        etiqueta.textContent = materia
+            ? `Unidad: ${materia.Unidad || "-"}`
+            : "Unidad: -";
+
+    },
+
+    calcularVistaPrevia(){
+
+        const lista = document.getElementById("listaRecetas");
+
+        if(!lista){
+            return;
+        }
+
+        let costo = 0;
+
+        lista.querySelectorAll(".recipe-row").forEach(function(fila){
+
+            const select = fila.querySelector(".recipe-material");
+            const cantidad = fila.querySelector(".recipe-cantidad");
+
+            const idMateriaPrima = select ? select.value : "";
+            const cantidadNumero = numeroSeguro(cantidad ? cantidad.value : 0, 0);
+
+            const materia = Productos.obtenerMateriaPrima(idMateriaPrima);
+
+            if(materia && cantidadNumero > 0){
+
+                costo += numeroSeguro(materia.CostoUnitario, 0) * cantidadNumero;
+
+            }
+
+        });
+
+        const precio = numeroSeguro(
+            document.getElementById("productoPrecioVenta")?.value,
+            0
+        );
+
+        const costoEtiqueta = document.getElementById("productoCostoPreview");
+        const gananciaEtiqueta = document.getElementById("productoGananciaPreview");
+
+        if(costoEtiqueta){
+            costoEtiqueta.textContent = dinero(costo);
+        }
+
+        if(gananciaEtiqueta){
+            gananciaEtiqueta.textContent = dinero(precio - costo);
+        }
+
+    },
+
+    obtenerRecetasFormulario(){
+
+        const recetas = [];
+
+        const filas = document.querySelectorAll("#listaRecetas .recipe-row");
+
+        filas.forEach(function(fila){
+
+            const select = fila.querySelector(".recipe-material");
+            const cantidad = fila.querySelector(".recipe-cantidad");
+
+            const idMateriaPrima = select ? textoSeguro(select.value) : "";
+            const cantidadNumero = numeroSeguro(cantidad ? cantidad.value : 0, 0);
+
+            if(idMateriaPrima && cantidadNumero > 0){
+
+                recetas.push({
+                    IDMateriaPrima: idMateriaPrima,
+                    Cantidad: cantidadNumero
+                });
+
+            }
+
+        });
+
+        return recetas;
+
+    },
+
+    guardar(event){
+
+        event.preventDefault();
+
+        const nombre = textoSeguro(document.getElementById("productoNombre")?.value);
+        const categoria = textoSeguro(document.getElementById("productoCategoria")?.value);
+        const precioVenta = numeroSeguro(
+            document.getElementById("productoPrecioVenta")?.value,
+            NaN
+        );
+        const estado = textoSeguro(document.getElementById("productoEstado")?.value) || "Activo";
+        const idProducto = textoSeguro(document.getElementById("productoId")?.value);
+        const recetas = Productos.obtenerRecetasFormulario();
+
+        if(!nombre){
+
+            mostrarToast("Ingresa el nombre del producto");
+            return;
+
+        }
+
+        if(!Number.isFinite(precioVenta) || precioVenta <= 0){
+
+            mostrarToast("El precio debe ser mayor que cero");
+            return;
+
+        }
+
+        if(recetas.length === 0){
+
+            mostrarToast("Agrega al menos una materia prima a la receta");
+            return;
+
+        }
+
+        const payload = {
+
+            ID: idProducto,
+            Nombre: nombre,
+            Categoria: categoria,
+            PrecioVenta: precioVenta,
+            Estado: estado,
+            Recetas: recetas
+
+        };
+
+        mostrarLoader();
+
+        API.guardarProducto(payload, function(respuesta){
+
+            ocultarLoader();
+
+            mostrarToast(respuesta && respuesta.mensaje ? respuesta.mensaje : "Producto guardado");
+            Productos.cerrarModal();
+            Productos.cargarDatos();
+
+        }, function(error){
+
+            ocultarLoader();
+            console.error(error);
+            mostrarToast("No se pudo guardar el producto");
+
+        });
+
+    },
+
+    duplicar(idProducto){
+
+        if(!confirm("¿Deseas duplicar este producto?")){
+            return;
+        }
+
+        mostrarLoader();
+
+        API.duplicarProducto(idProducto, function(respuesta){
+
+            ocultarLoader();
+
+            mostrarToast(respuesta && respuesta.mensaje ? respuesta.mensaje : "Producto duplicado");
+            Productos.cargarDatos();
+
+        }, function(error){
+
+            ocultarLoader();
+            console.error(error);
+            mostrarToast("No se pudo duplicar el producto");
+
+        });
+
+    },
+
+    cambiarEstado(idProducto){
+
+        mostrarLoader();
+
+        API.cambiarEstadoProducto(idProducto, function(respuesta){
+
+            ocultarLoader();
+
+            mostrarToast(respuesta && respuesta.mensaje ? respuesta.mensaje : "Producto actualizado");
+            Productos.cargarDatos();
+
+        }, function(error){
+
+            ocultarLoader();
+            console.error(error);
+            mostrarToast("No se pudo actualizar el producto");
+
+        });
+
+    }
+
+};
+
+</script>

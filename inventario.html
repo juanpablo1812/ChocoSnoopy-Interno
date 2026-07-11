@@ -1,0 +1,312 @@
+<section class="view" id="vistaInventario">
+
+    <header class="view-header">
+
+        <div class="card header-card">
+
+            <div class="header-info">
+
+                <h2>Inventario</h2>
+
+                <p>Controla materias primas, stock y alertas</p>
+
+            </div>
+
+            <div class="logo-circle">
+
+                <span class="material-symbols-outlined">warehouse</span>
+
+            </div>
+
+        </div>
+
+    </header>
+
+    <main class="view-content">
+
+        <div class="toolbar">
+
+            <div class="search">
+
+                <span class="material-symbols-outlined">search</span>
+
+                <input
+                    id="buscadorInventario"
+                    type="search"
+                    placeholder="Buscar materia prima...">
+
+            </div>
+
+            <div class="chips" id="chipsInventario">
+
+                <button class="chip active" type="button" data-filtro="todos">
+                    Todas
+                </button>
+
+                <button class="chip" type="button" data-filtro="alerta">
+                    Advertencia
+                </button>
+
+                <button class="chip" type="button" data-filtro="activas">
+                    Activas
+                </button>
+
+                <button class="chip" type="button" data-filtro="inactivas">
+                    Inactivas
+                </button>
+
+            </div>
+
+        </div>
+
+        <section
+            id="listaInventario"
+            class="items-list">
+
+            <div class="empty">
+
+                <span class="material-symbols-outlined">
+                    warehouse
+                </span>
+
+                <h3>
+                    Aún no tienes materias primas
+                </h3>
+
+                <p>
+                    Pulsa el botón + para agregar la primera.
+                </p>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <button
+        id="btnNuevaMateriaPrima"
+        class="fab"
+        type="button"
+        aria-label="Nueva materia prima">
+
+        <span class="material-symbols-outlined">add</span>
+
+    </button>
+
+    <div
+        id="modalMateriaPrima"
+        class="modal-overlay"
+        aria-hidden="true">
+
+        <div class="modal-panel">
+
+            <div class="modal-header">
+
+                <div>
+
+                    <h3 id="tituloModalMateriaPrima">Nueva materia prima</h3>
+
+                    <p>Registra insumos, stock y alertas.</p>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="icon-button"
+                    id="btnCerrarModalMateriaPrima"
+                    aria-label="Cerrar">
+
+                    <span class="material-symbols-outlined">close</span>
+
+                </button>
+
+            </div>
+
+            <form id="formMateriaPrima" class="modal-body">
+
+                <input type="hidden" id="materiaPrimaId">
+                <input type="hidden" id="materiaPrimaFechaIngresoOriginal">
+
+                <div class="field-grid">
+
+                    <div class="form-group">
+
+                        <label for="materiaPrimaNombre">Nombre</label>
+
+                        <input
+                            class="form-control"
+                            id="materiaPrimaNombre"
+                            type="text"
+                            placeholder="Ej. Chocolate"
+                            required>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="materiaPrimaUnidad">Unidad</label>
+
+                        <input
+                            class="form-control"
+                            id="materiaPrimaUnidad"
+                            type="text"
+                            list="unidadesMateriaPrima"
+                            placeholder="Ej. g"
+                            required>
+
+                        <datalist id="unidadesMateriaPrima">
+                            <option value="g"></option>
+                            <option value="kg"></option>
+                            <option value="mg"></option>
+                            <option value="ml"></option>
+                            <option value="l"></option>
+                            <option value="unidad"></option>
+                            <option value="unidades"></option>
+                            <option value="caja"></option>
+                            <option value="cajas"></option>
+                            <option value="frasco"></option>
+                            <option value="frascos"></option>
+                            <option value="paquete"></option>
+                            <option value="paquetes"></option>
+                            <option value="bolsa"></option>
+                            <option value="bolsas"></option>
+                        </datalist>
+
+                    </div>
+
+                </div>
+
+                <div class="field-grid">
+
+                    <div class="form-group">
+
+                        <label for="materiaPrimaCantidadPresentacion">Cantidad de presentación</label>
+
+                        <input
+                            class="form-control"
+                            id="materiaPrimaCantidadPresentacion"
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            placeholder="0"
+                            required>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="materiaPrimaCostoTotalCompra">Costo total de compra</label>
+
+                        <input
+                            class="form-control"
+                            id="materiaPrimaCostoTotalCompra"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="0"
+                            required>
+
+                    </div>
+
+                </div>
+
+                <div class="field-grid">
+
+                    <div class="form-group">
+
+                        <label for="materiaPrimaCostoUnitario">Costo unitario calculado</label>
+
+                        <input
+                            class="form-control"
+                            id="materiaPrimaCostoUnitario"
+                            type="number"
+                            readonly
+                            value="0">
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="materiaPrimaStockActual">Stock actual</label>
+
+                        <input
+                            class="form-control"
+                            id="materiaPrimaStockActual"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="0"
+                            required>
+
+                    </div>
+
+                </div>
+
+                <div class="field-grid">
+
+                    <div class="form-group">
+
+                        <label for="materiaPrimaStockMinimo">Nivel mínimo de alerta</label>
+
+                        <input
+                            class="form-control"
+                            id="materiaPrimaStockMinimo"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="0"
+                            required>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="materiaPrimaFechaIngreso">Fecha de ingreso</label>
+
+                        <input
+                            class="form-control"
+                            id="materiaPrimaFechaIngreso"
+                            type="date"
+                            required>
+
+                    </div>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="materiaPrimaEstado">Estado</label>
+
+                    <select class="form-select" id="materiaPrimaEstado">
+
+                        <option value="Activo">Activo</option>
+                        <option value="Inactivo">Inactivo</option>
+
+                    </select>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        id="btnCancelarMateriaPrima">
+
+                        Cancelar
+
+                    </button>
+
+                    <button type="submit" class="btn btn-primary">
+                        Guardar materia prima
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</section>

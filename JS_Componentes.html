@@ -1,0 +1,107 @@
+<script>
+
+/*====================================
+=        COMPONENTES
+====================================*/
+
+let toastTimer = null;
+
+function mostrarToast(mensaje){
+
+    const toast = document.getElementById("toast");
+
+    if(!toast){
+        return;
+    }
+
+    toast.textContent = mensaje;
+
+    toast.classList.add("show");
+
+    clearTimeout(toastTimer);
+
+    toastTimer = setTimeout(function(){
+
+        toast.classList.remove("show");
+
+    }, 2500);
+
+}
+
+function mostrarLoader(){
+
+    const loader = document.getElementById("loader");
+
+    if(loader){
+        loader.hidden = false;
+    }
+
+}
+
+function ocultarLoader(){
+
+    const loader = document.getElementById("loader");
+
+    if(loader){
+        loader.hidden = true;
+    }
+
+}
+
+function abrirModal(idModal){
+
+    const modal = document.getElementById(idModal);
+
+    if(!modal){
+        return;
+    }
+
+    modal.classList.add("show");
+    document.body.style.overflow = "hidden";
+
+}
+
+function cerrarModal(idModal){
+
+    const modal = document.getElementById(idModal);
+
+    if(!modal){
+        return;
+    }
+
+    modal.classList.remove("show");
+    document.body.style.overflow = "";
+
+}
+
+/*====================================
+=           NAVBAR
+====================================*/
+
+function activarNavbar(vista){
+
+    document
+        .querySelectorAll("#navbar button")
+        .forEach(function(boton){
+
+            const icono = boton.querySelector(".material-symbols-outlined");
+
+            if(icono){
+                icono.classList.remove("active");
+            }
+
+        });
+
+    const iconoActivo = document.querySelector(
+        `#navbar button[data-vista="${vista}"] .material-symbols-outlined`
+    );
+
+    if(iconoActivo){
+
+        iconoActivo.classList.add("active");
+
+    }
+
+}
+
+</script>

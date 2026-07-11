@@ -1,0 +1,252 @@
+<section class="view" id="vistaProductos">
+
+    <header class="view-header">
+
+        <div class="card header-card">
+
+            <div class="header-info">
+
+                <h2>Productos</h2>
+
+                <p>Administra precios, costos y recetas</p>
+
+            </div>
+
+            <div class="logo-circle">
+
+                <span class="material-symbols-outlined">inventory_2</span>
+
+            </div>
+
+        </div>
+
+    </header>
+
+    <main class="view-content">
+
+        <div class="toolbar">
+
+            <div class="search">
+
+                <span class="material-symbols-outlined">search</span>
+
+                <input
+                    id="buscadorProductos"
+                    type="search"
+                    placeholder="Buscar producto, categoría o estado...">
+
+            </div>
+
+            <div class="chips" id="chipsProductos">
+
+                <button class="chip active" type="button" data-filtro="todos">
+                    Todos
+                </button>
+
+                <button class="chip" type="button" data-filtro="activos">
+                    Activos
+                </button>
+
+                <button class="chip" type="button" data-filtro="inactivos">
+                    Inactivos
+                </button>
+
+            </div>
+
+        </div>
+
+        <section class="card">
+
+            <div id="listaProductos" class="product-list">
+
+                <div class="empty">
+
+                    <span class="material-symbols-outlined">inventory_2</span>
+
+                    <h3>Aún no tienes productos</h3>
+
+                    <p>Pulsa el botón + para crear el primero.</p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <button
+        id="btnNuevoProducto"
+        class="fab"
+        type="button"
+        aria-label="Nuevo producto">
+
+        <span class="material-symbols-outlined">add</span>
+
+    </button>
+
+    <div
+        id="modalProducto"
+        class="modal-overlay"
+        aria-hidden="true">
+
+        <div class="modal-panel product-modal">
+
+            <div class="modal-header">
+
+                <div>
+
+                    <h3 id="tituloModalProducto">Nuevo producto</h3>
+
+                    <p>Define nombre, precio y receta.</p>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="icon-button"
+                    id="btnCerrarModalProducto"
+                    aria-label="Cerrar">
+
+                    <span class="material-symbols-outlined">close</span>
+
+                </button>
+
+            </div>
+
+            <form id="formProducto" class="modal-body">
+
+                <input type="hidden" id="productoId">
+
+                <div class="field-grid">
+
+                    <div class="form-group">
+
+                        <label for="productoNombre">Nombre</label>
+
+                        <input
+                            class="form-control"
+                            id="productoNombre"
+                            type="text"
+                            placeholder="Ej. Choco Oreo"
+                            required>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="productoCategoria">Categoría</label>
+
+                        <input
+                            class="form-control"
+                            id="productoCategoria"
+                            type="text"
+                            placeholder="Ej. Chocolates">
+
+                    </div>
+
+                </div>
+
+                <div class="field-grid">
+
+                    <div class="form-group">
+
+                        <label for="productoPrecioVenta">Precio de venta</label>
+
+                        <input
+                            class="form-control"
+                            id="productoPrecioVenta"
+                            type="number"
+                            min="0"
+                            step="1"
+                            placeholder="0"
+                            required>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="productoEstado">Estado</label>
+
+                        <select class="form-select" id="productoEstado">
+
+                            <option value="Activo">Activo</option>
+                            <option value="Inactivo">Inactivo</option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+                <div class="product-summary">
+
+                    <div class="summary-box">
+
+                        <span>Costo calculado</span>
+
+                        <strong id="productoCostoPreview">$0</strong>
+
+                    </div>
+
+                    <div class="summary-box">
+
+                        <span>Ganancia estimada</span>
+
+                        <strong id="productoGananciaPreview">$0</strong>
+
+                    </div>
+
+                </div>
+
+                <section class="recipe-section">
+
+                    <div class="recipe-header">
+
+                        <div>
+
+                            <h4>Receta</h4>
+
+                            <p>Agrega materias primas y cantidades.</p>
+
+                        </div>
+
+                        <button
+                            type="button"
+                            class="btn btn-secondary"
+                            id="btnAgregarIngrediente">
+
+                            + Agregar ingrediente
+
+                        </button>
+
+                    </div>
+
+                    <div id="listaRecetas" class="recipe-list"></div>
+
+                </section>
+
+                <div class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        id="btnCancelarProducto">
+
+                        Cancelar
+
+                    </button>
+
+                    <button type="submit" class="btn btn-primary">
+                        Guardar producto
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</section>

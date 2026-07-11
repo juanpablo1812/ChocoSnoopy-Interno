@@ -1,0 +1,167 @@
+<script>
+
+/*====================================
+=             API
+====================================*/
+
+const API = {
+
+    obtenerVista(nombreVista, exito, error){
+
+        google.script.run
+            .withSuccessHandler(exito || function(){})
+            .withFailureHandler(
+                error || function(err){
+                    console.error(err);
+                }
+            )
+            .obtenerVista(nombreVista);
+
+    },
+
+    obtenerDashboard(exito, error){
+
+        google.script.run
+            .withSuccessHandler(exito || function(){})
+            .withFailureHandler(
+                error || function(err){
+                    console.error(err);
+                }
+            )
+            .obtenerDashboard();
+
+    },
+
+    obtenerDatosProductos(exito, error){
+
+        google.script.run
+            .withSuccessHandler(exito || function(){})
+            .withFailureHandler(
+                error || function(err){
+                    console.error(err);
+                }
+            )
+            .obtenerDatosProductos();
+
+    },
+
+    guardarProducto(producto, exito, error){
+
+        google.script.run
+            .withSuccessHandler(exito || function(){})
+            .withFailureHandler(
+                error || function(err){
+                    console.error(err);
+                }
+            )
+            .guardarProducto(producto);
+
+    },
+
+    cambiarEstadoProducto(idProducto, exito, error){
+
+        google.script.run
+            .withSuccessHandler(exito || function(){})
+            .withFailureHandler(
+                error || function(err){
+                    console.error(err);
+                }
+            )
+            .cambiarEstadoProducto(idProducto);
+
+    },
+
+    duplicarProducto(idProducto, exito, error){
+
+        google.script.run
+            .withSuccessHandler(exito || function(){})
+            .withFailureHandler(
+                error || function(err){
+                    console.error(err);
+                }
+            )
+            .duplicarProducto(idProducto);
+
+    },
+
+    obtenerProducto(idProducto, exito, error){
+
+        google.script.run
+            .withSuccessHandler(exito || function(){})
+            .withFailureHandler(
+                error || function(err){
+                    console.error(err);
+                }
+            )
+            .obtenerProducto(idProducto);
+
+    },
+
+    obtenerDatosInventario(exito, error){
+
+        google.script.run
+            .withSuccessHandler(exito || function(){})
+            .withFailureHandler(
+                error || function(err){
+                    console.error(err);
+                }
+            )
+            .obtenerDatosInventario();
+
+    },
+
+    obtenerMateriaPrima(idMateriaPrima, exito, error){
+
+        google.script.run
+            .withSuccessHandler(exito || function(){})
+            .withFailureHandler(
+                error || function(err){
+                    console.error(err);
+                }
+            )
+            .obtenerMateriaPrima(idMateriaPrima);
+
+    },
+
+    guardarMateriaPrima(materiaPrima, exito, error){
+
+        google.script.run
+            .withSuccessHandler(exito || function(){})
+            .withFailureHandler(
+                error || function(err){
+                    console.error(err);
+                }
+            )
+            .guardarMateriaPrima(materiaPrima);
+
+    },
+
+    cambiarEstadoMateriaPrima(idMateriaPrima, exito, error){
+
+        google.script.run
+            .withSuccessHandler(exito || function(){})
+            .withFailureHandler(
+                error || function(err){
+                    console.error(err);
+                }
+            )
+            .cambiarEstadoMateriaPrima(idMateriaPrima);
+
+    },
+
+    ajustarStockMateriaPrima(idMateriaPrima, delta, exito, error){
+
+        google.script.run
+            .withSuccessHandler(exito || function(){})
+            .withFailureHandler(
+                error || function(err){
+                    console.error(err);
+                }
+            )
+            .ajustarStockMateriaPrima(idMateriaPrima, delta);
+
+    }
+
+};
+
+</script>

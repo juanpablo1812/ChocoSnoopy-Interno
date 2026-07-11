@@ -1,0 +1,800 @@
+<script>
+
+/*====================================
+=         INVENTARIO
+====================================*/
+
+const Inventario = {
+
+    materiasPrimas: [],
+    busqueda: "",
+    filtro: "todos",
+
+    iniciar(){
+
+        Inventario.vincularEventos();
+        Inventario.cargarDatos();
+
+    },
+
+    vincularEventos(){
+
+        const buscador = document.getElementById("buscadorInventario");
+
+        if(buscador){
+
+            buscador.addEventListener("input", function(){
+
+                Inventario.busqueda = this.value;
+                Inventario.renderLista();
+
+            });
+
+        }
+
+        document
+            .querySelectorAll("#chipsInventario .chip")
+            .forEach(function(chip){
+
+                chip.addEventListener("click", function(){
+
+                    document
+                        .querySelectorAll("#chipsInventario .chip")
+                        .forEach(function(item){
+                            item.classList.remove("active");
+                        });
+
+                    this.classList.add("active");
+                    Inventario.filtro = this.dataset.filtro || "todos";
+                    Inventario.renderLista();
+
+                });
+
+            });
+
+        const btnNuevo = document.getElementById("btnNuevaMateriaPrima");
+
+        if(btnNuevo){
+
+            btnNuevo.addEventListener("click", function(){
+                Inventario.abrirNueva();
+            });
+
+        }
+
+        const btnCerrar = document.getElementById("btnCerrarModalMateriaPrima");
+
+        if(btnCerrar){
+
+            btnCerrar.addEventListener("click", function(){
+                Inventario.cerrarModal();
+            });
+
+        }
+
+        const btnCancelar = document.getElementById("btnCancelarMateriaPrima");
+
+        if(btnCancelar){
+
+            btnCancelar.addEventListener("click", function(){
+                Inventario.cerrarModal();
+            });
+
+        }
+
+        const modal = document.getElementById("modalMateriaPrima");
+
+        if(modal){
+
+            modal.addEventListener("click", function(event){
+
+                if(event.target === modal){
+                    Inventario.cerrarModal();
+                }
+
+            });
+
+        }
+
+        const form = document.getElementById("formMateriaPrima");
+
+        if(form){
+
+            form.addEventListener("submit", function(event){
+                Inventario.guardar(event);
+            });
+
+        }
+
+        const lista = document.getElementById("listaInventario");
+
+        if(lista){
+
+            lista.addEventListener("click", function(event){
+
+                const boton = event.target.closest("[data-accion]");
+
+                if(!boton){
+                    return;
+                }
+
+                const accion = boton.dataset.accion;
+                const id = boton.dataset.id;
+
+                if(accion === "editar"){
+                    Inventario.abrirEditar(id);
+                }
+
+                if(accion === "activar" || accion === "desactivar"){
+                    Inventario.cambiarEstado(id);
+                }
+
+            });
+
+        }
+
+        const cantidadPresentacion = document.getElementById("materiaPrimaCantidadPresentacion");
+        const costoTotalCompra = document.getElementById("materiaPrimaCostoTotalCompra");
+        const stockActual = document.getElementById("materiaPrimaStockActual");
+
+        if(cantidadPresentacion){
+
+            cantidadPresentacion.addEventListener("input", function(){
+                Inventario.recalcularCostoUnitario();
+                Inventario.sincronizarStockActual();
+            });
+
+        }
+
+        if(costoTotalCompra){
+
+            costoTotalCompra.addEventListener("input", function(){
+                Inventario.recalcularCostoUnitario();
+            });
+
+        }
+
+        if(stockActual){
+
+            stockActual.addEventListener("input", function(){
+                this.dataset.manual = "true";
+            });
+
+        }
+
+    },
+
+    cargarDatos(){
+
+        mostrarLoader();
+
+        API.obtenerDatosInventario(function(datos){
+
+            ocultarLoader();
+
+            Inventario.materiasPrimas = Array.isArray(datos.materiasPrimas)
+                ? datos.materiasPrimas
+                : [];
+
+            Inventario.renderLista();
+
+        }, function(error){
+
+            ocultarLoader();
+            console.error(error);
+            mostrarToast("No se pudo cargar el inventario");
+
+        });
+
+    },
+
+    renderLista(){
+
+        const contenedor = document.getElementById("listaInventario");
+
+        if(!contenedor){
+            return;
+        }
+
+        const filtradas = Inventario.materiasPrimas
+            .filter(function(item){
+
+                const estado = textoSeguro(item.Estado).toLowerCase();
+                const bajoMinimo = !!item.BajoMinimo;
+
+                const texto = (
+                    textoSeguro(item.Nombre) + " " +
+                    textoSeguro(item.Unidad) + " " +
+                    textoSeguro(item.Estado)
+                ).toLowerCase();
+
+                const coincideBusqueda = texto.includes(
+                    textoSeguro(Inventario.busqueda).toLowerCase()
+                );
+
+                let coincideFiltro = true;
+
+                if(Inventario.filtro === "alerta"){
+                    coincideFiltro = bajoMinimo && estado === "activo";
+                }
+
+                if(Inventario.filtro === "activas"){
+                    coincideFiltro = estado === "activo";
+                }
+
+                if(Inventario.filtro === "inactivas"){
+                    coincideFiltro = estado === "inactivo";
+                }
+
+                return coincideBusqueda && coincideFiltro;
+
+            })
+            .sort(function(a,b){
+
+                return textoSeguro(a.Nombre)
+                    .localeCompare(textoSeguro(b.Nombre),"es");
+
+            });
+
+        if(Inventario.materiasPrimas.length===0){
+
+            contenedor.innerHTML=`
+
+                <div class="empty">
+
+                    <span class="material-symbols-outlined">
+                        warehouse
+                    </span>
+
+                    <h3>
+                        Aún no tienes materias primas
+                    </h3>
+
+                    <p>
+                        Pulsa el botón + para agregar la primera.
+                    </p>
+
+                </div>
+
+            `;
+
+            return;
+
+        }
+
+        if(filtradas.length===0){
+
+            contenedor.innerHTML=`
+
+                <div class="empty">
+
+                    <span class="material-symbols-outlined">
+                        search_off
+                    </span>
+
+                    <h3>
+                        No hay coincidencias
+                    </h3>
+
+                    <p>
+                        Prueba con otro filtro.
+                    </p>
+
+                </div>
+
+            `;
+
+            return;
+
+        }
+
+        contenedor.innerHTML = filtradas
+            .map(Inventario.renderFila)
+            .join("");
+
+    },
+
+    renderFila(item){
+
+        const estado = textoSeguro(item.Estado).toLowerCase();
+
+        const stock = numeroSeguro(item.StockActual,0);
+
+        const minimo = numeroSeguro(item.StockMinimo,0);
+
+        const bajoMinimo =
+            estado==="activo" &&
+            stock<=minimo;
+
+        let claseEstado="status-success";
+        let textoEstado="Activo";
+
+        if(estado==="inactivo"){
+
+            claseEstado="status-danger";
+            textoEstado="Inactivo";
+
+        }
+
+        if(bajoMinimo){
+
+            claseEstado="status-warning";
+            textoEstado="Advertencia";
+
+        }
+
+        const accionEstado =
+            estado==="activo"
+                ? "desactivar"
+                : "activar";
+
+        const claseTarjeta =
+            bajoMinimo
+                ? "alerta"
+                : estado === "inactivo"
+                    ? "inactiva"
+                    : "";
+
+        return `
+
+    <article class="item-card ${claseTarjeta}">
+
+        <div class="item-header">
+
+            <div class="item-info">
+
+                <div class="item-title">
+
+                    ${escapeHTML(item.Nombre)}
+
+                </div>
+
+                <div class="item-subtitle">
+
+                    ${escapeHTML(item.Unidad)} · ID ${escapeHTML(item.ID)}
+
+                </div>
+
+            </div>
+
+            <span class="item-status ${claseEstado}">
+
+                ${textoEstado}
+
+            </span>
+
+        </div>
+
+        <div class="item-metrics">
+
+            <div class="metric">
+
+                <div class="metric-label">
+
+                    Disponible
+
+                </div>
+
+                <div class="metric-value ${bajoMinimo ? "stock-bajo" : "stock-normal"}">
+
+                    ${formatearNumero(stock)}
+
+                </div>
+
+            </div>
+
+            <div class="metric">
+
+                <div class="metric-label">
+
+                    Mínimo
+
+                </div>
+
+                <div class="metric-value">
+
+                    ${formatearNumero(minimo)}
+
+                </div>
+
+            </div>
+
+            <div class="metric">
+
+                <div class="metric-label">
+
+                    Costo/U
+
+                </div>
+
+                <div class="metric-value">
+
+                    ${dinero(item.CostoUnitario)}
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="item-actions">
+
+            <button
+
+                class="btn btn-secondary"
+
+                data-accion="editar"
+
+                data-id="${escapeHTML(item.ID)}">
+
+                Editar
+
+            </button>
+
+            <button
+
+                class="btn ${estado==="activo" ? "btn-danger" : "btn-primary"}"
+
+                data-accion="${accionEstado}"
+
+                data-id="${escapeHTML(item.ID)}">
+
+                ${estado==="activo" ? "Desactivar" : "Activar"}
+
+            </button>
+
+        </div>
+
+    </article>
+
+    `;
+
+    },
+
+    abrirNueva(){
+
+        Inventario.limpiarFormulario();
+
+        const titulo = document.getElementById("tituloModalMateriaPrima");
+        const fechaIngreso = document.getElementById("materiaPrimaFechaIngreso");
+
+        if(titulo){
+            titulo.textContent = "Nueva materia prima";
+        }
+
+        if(fechaIngreso){
+
+            fechaIngreso.disabled = false;
+            fechaIngreso.value = Inventario.fechaHoyInput();
+
+        }
+
+        const stockActual = document.getElementById("materiaPrimaStockActual");
+
+        if(stockActual){
+            stockActual.dataset.manual = "false";
+        }
+
+        abrirModal("modalMateriaPrima");
+
+    },
+
+    abrirEditar(idMateriaPrima){
+
+        const item = Inventario.materiasPrimas.find(function(materia){
+            return String(materia.ID) === String(idMateriaPrima);
+        });
+
+        if(!item){
+
+            mostrarToast("No se encontró la materia prima");
+            return;
+
+        }
+
+        Inventario.limpiarFormulario();
+
+        const titulo = document.getElementById("tituloModalMateriaPrima");
+        const id = document.getElementById("materiaPrimaId");
+        const nombre = document.getElementById("materiaPrimaNombre");
+        const unidad = document.getElementById("materiaPrimaUnidad");
+        const cantidadPresentacion = document.getElementById("materiaPrimaCantidadPresentacion");
+        const costoTotalCompra = document.getElementById("materiaPrimaCostoTotalCompra");
+        const costoUnitario = document.getElementById("materiaPrimaCostoUnitario");
+        const stockActual = document.getElementById("materiaPrimaStockActual");
+        const stockMinimo = document.getElementById("materiaPrimaStockMinimo");
+        const fechaIngreso = document.getElementById("materiaPrimaFechaIngreso");
+        const fechaOriginal = document.getElementById("materiaPrimaFechaIngresoOriginal");
+        const estado = document.getElementById("materiaPrimaEstado");
+
+        if(titulo){
+            titulo.textContent = "Editar materia prima";
+        }
+
+        if(id) id.value = item.ID || "";
+        if(nombre) nombre.value = item.Nombre || "";
+        if(unidad) unidad.value = item.Unidad || "";
+        if(cantidadPresentacion) cantidadPresentacion.value = numeroSeguro(item.CantidadPresentacion, 0);
+        if(costoTotalCompra) costoTotalCompra.value = numeroSeguro(item.CostoTotalCompra, 0);
+        if(costoUnitario) costoUnitario.value = numeroSeguro(item.CostoUnitario, 0);
+        if(stockActual) {
+            stockActual.value = numeroSeguro(item.StockActual, 0);
+            stockActual.dataset.manual = "true";
+        }
+        if(stockMinimo) stockMinimo.value = numeroSeguro(item.StockMinimo, 0);
+        if(estado) estado.value = item.Estado || "Activo";
+
+        const fechaBase = item.FechaCreacion || item.FechaActualizacion || new Date();
+        const fechaInput = Inventario.formatearFechaInput(fechaBase);
+
+        if(fechaOriginal) fechaOriginal.value = fechaInput;
+        if(fechaIngreso){
+
+            fechaIngreso.value = fechaInput;
+            fechaIngreso.disabled = true;
+
+        }
+
+        abrirModal("modalMateriaPrima");
+
+    },
+
+    limpiarFormulario(){
+
+        const form = document.getElementById("formMateriaPrima");
+        const id = document.getElementById("materiaPrimaId");
+        const fechaOriginal = document.getElementById("materiaPrimaFechaIngresoOriginal");
+        const fechaIngreso = document.getElementById("materiaPrimaFechaIngreso");
+        const costoUnitario = document.getElementById("materiaPrimaCostoUnitario");
+        const stockActual = document.getElementById("materiaPrimaStockActual");
+
+        if(form){
+            form.reset();
+        }
+
+        if(id) id.value = "";
+        if(fechaOriginal) fechaOriginal.value = "";
+
+        if(fechaIngreso){
+
+            fechaIngreso.disabled = false;
+            fechaIngreso.value = Inventario.fechaHoyInput();
+
+        }
+
+        if(costoUnitario) costoUnitario.value = 0;
+
+        if(stockActual){
+            stockActual.dataset.manual = "false";
+        }
+
+    },
+
+    cerrarModal(){
+
+        cerrarModal("modalMateriaPrima");
+
+    },
+
+    recalcularCostoUnitario(){
+
+        const cantidad = numeroSeguro(
+            document.getElementById("materiaPrimaCantidadPresentacion")?.value,
+            0
+        );
+
+        const costoTotal = numeroSeguro(
+            document.getElementById("materiaPrimaCostoTotalCompra")?.value,
+            0
+        );
+
+        const costoUnitario = document.getElementById("materiaPrimaCostoUnitario");
+
+        if(costoUnitario){
+
+            if(cantidad > 0){
+                costoUnitario.value = Number((costoTotal / cantidad).toFixed(4));
+            }else{
+                costoUnitario.value = 0;
+            }
+
+        }
+
+    },
+
+    sincronizarStockActual(){
+
+        const cantidad = numeroSeguro(
+            document.getElementById("materiaPrimaCantidadPresentacion")?.value,
+            0
+        );
+
+        const stockActual = document.getElementById("materiaPrimaStockActual");
+
+        if(!stockActual){
+            return;
+        }
+
+        if(stockActual.dataset.manual === "true"){
+            return;
+        }
+
+        stockActual.value = cantidad;
+
+    },
+
+    guardar(event){
+
+        event.preventDefault();
+
+        const id = textoSeguro(document.getElementById("materiaPrimaId")?.value);
+        const nombre = textoSeguro(document.getElementById("materiaPrimaNombre")?.value);
+        const unidad = textoSeguro(document.getElementById("materiaPrimaUnidad")?.value);
+        const cantidadPresentacion = numeroSeguro(
+            document.getElementById("materiaPrimaCantidadPresentacion")?.value,
+            NaN
+        );
+        const costoTotalCompra = numeroSeguro(
+            document.getElementById("materiaPrimaCostoTotalCompra")?.value,
+            NaN
+        );
+        const stockActualInput = numeroSeguro(
+            document.getElementById("materiaPrimaStockActual")?.value,
+            NaN
+        );
+        const stockMinimo = numeroSeguro(document.getElementById("materiaPrimaStockMinimo")?.value, NaN);
+        const estado = textoSeguro(document.getElementById("materiaPrimaEstado")?.value) || "Activo";
+        const fechaIngreso = textoSeguro(document.getElementById("materiaPrimaFechaIngreso")?.value)
+            || textoSeguro(document.getElementById("materiaPrimaFechaIngresoOriginal")?.value)
+            || Inventario.fechaHoyInput();
+
+        if(!nombre){
+
+            mostrarToast("Ingresa el nombre de la materia prima");
+            return;
+
+        }
+
+        if(!unidad){
+
+            mostrarToast("Ingresa la unidad de la materia prima");
+            return;
+
+        }
+
+        if(!Number.isFinite(cantidadPresentacion) || cantidadPresentacion <= 0){
+
+            mostrarToast("La cantidad de presentación debe ser mayor que cero");
+            return;
+
+        }
+
+        if(!Number.isFinite(costoTotalCompra) || costoTotalCompra < 0){
+
+            mostrarToast("El costo total de compra debe ser válido");
+            return;
+
+        }
+
+        if(!Number.isFinite(stockMinimo) || stockMinimo < 0){
+
+            mostrarToast("El nivel mínimo debe ser válido");
+            return;
+
+        }
+
+        const stockActual = Number.isFinite(stockActualInput) ? stockActualInput : cantidadPresentacion;
+
+        if(stockActual < 0){
+
+            mostrarToast("La cantidad disponible debe ser válida");
+            return;
+
+        }
+
+        const costoUnitario = cantidadPresentacion > 0
+            ? costoTotalCompra / cantidadPresentacion
+            : 0;
+
+        mostrarLoader();
+
+        API.guardarMateriaPrima({
+            ID: id,
+            Nombre: nombre,
+            Unidad: unidad,
+            CantidadPresentacion: cantidadPresentacion,
+            CostoTotalCompra: costoTotalCompra,
+            CostoUnitario: costoUnitario,
+            StockActual: stockActual,
+            StockMinimo: stockMinimo,
+            Estado: estado,
+            FechaIngreso: fechaIngreso
+        }, function(respuesta){
+
+            ocultarLoader();
+
+            mostrarToast(respuesta && respuesta.mensaje ? respuesta.mensaje : "Materia prima guardada");
+            Inventario.cerrarModal();
+            Inventario.cargarDatos();
+
+        }, function(error){
+
+            ocultarLoader();
+            console.error(error);
+            mostrarToast("No se pudo guardar la materia prima");
+
+        });
+
+    },
+
+    cambiarEstado(idMateriaPrima){
+
+        mostrarLoader();
+
+        API.cambiarEstadoMateriaPrima(idMateriaPrima, function(respuesta){
+
+            ocultarLoader();
+
+            mostrarToast(respuesta && respuesta.mensaje ? respuesta.mensaje : "Materia prima actualizada");
+            Inventario.cargarDatos();
+
+        }, function(error){
+
+            ocultarLoader();
+            console.error(error);
+            mostrarToast("No se pudo actualizar la materia prima");
+
+        });
+
+    },
+
+    formatearFecha(valor){
+
+        if(!valor){
+            return "-";
+        }
+
+        const fecha = new Date(valor);
+
+        if(Number.isNaN(fecha.getTime())){
+            return "-";
+        }
+
+        return fecha.toLocaleDateString("es-CO", {
+            year: "numeric",
+            month: "short",
+            day: "2-digit"
+        });
+
+    },
+
+    formatearFechaInput(valor){
+
+        const fecha = new Date(valor);
+
+        if(Number.isNaN(fecha.getTime())){
+            return Inventario.fechaHoyInput();
+        }
+
+        const year = fecha.getFullYear();
+        const month = String(fecha.getMonth() + 1).padStart(2, "0");
+        const day = String(fecha.getDate()).padStart(2, "0");
+
+        return `${year}-${month}-${day}`;
+
+    },
+
+    fechaHoyInput(){
+
+        const hoy = new Date();
+        const year = hoy.getFullYear();
+        const month = String(hoy.getMonth() + 1).padStart(2, "0");
+        const day = String(hoy.getDate()).padStart(2, "0");
+
+        return `${year}-${month}-${day}`;
+
+    }
+
+};
+
+</script>

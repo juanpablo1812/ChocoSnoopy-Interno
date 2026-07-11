@@ -1,0 +1,64 @@
+<script>
+
+/*====================================
+=        UTILIDADES
+====================================*/
+
+function dinero(valor){
+
+    return "$" + Number(valor || 0).toLocaleString("es-CO");
+
+}
+
+function formatearNumero(valor){
+
+    return Number(valor || 0).toLocaleString("es-CO");
+
+}
+
+function numeroSeguro(valor, defecto = 0){
+
+    const numero = Number(valor);
+
+    return Number.isFinite(numero) ? numero : defecto;
+
+}
+
+function textoSeguro(valor){
+
+    if(valor === null || valor === undefined){
+        return "";
+    }
+
+    return String(valor).trim();
+
+}
+
+function escapeHTML(valor){
+
+    return textoSeguro(valor)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+}
+
+function fechaCorta(valor){
+
+    const fecha = new Date(valor);
+
+    if(Number.isNaN(fecha.getTime())){
+        return "-";
+    }
+
+    return fecha.toLocaleDateString("es-CO", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+    });
+
+}
+
+</script>

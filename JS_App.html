@@ -1,0 +1,131 @@
+<script>
+
+/*====================================
+=             APP
+====================================*/
+
+let vistaActual = "";
+
+/*====================================
+=        REGISTRO DE MÓDULOS
+====================================*/
+
+const MODULOS = {
+
+    dashboard: {
+
+        controlador: Dashboard,
+        titulo: "Dashboard"
+
+    },
+
+    productos: {
+
+        controlador: Productos,
+        titulo: "Productos"
+
+    },
+
+    inventario: {
+
+        controlador: Inventario,
+        titulo: "Inventario"
+
+    },
+
+    ventas: {
+
+        controlador: Ventas,
+        titulo: "Ventas"
+
+    }
+
+};
+
+/**
+ * Inicializa la aplicación
+ */
+document.addEventListener("DOMContentLoaded", iniciar);
+
+function iniciar(){
+
+    inicializarNavbar();
+    cambiarVista("dashboard");
+
+}
+
+function inicializarNavbar(){
+
+    document
+        .querySelectorAll("#navbar button[data-vista]")
+        .forEach(function(boton){
+
+            boton.addEventListener("click", function(){
+
+                cambiarVista(boton.dataset.vista);
+
+            });
+
+        });
+
+}
+
+/**
+ * Cambia de módulo
+ */
+function cambiarVista(nombreVista){
+
+    if(vistaActual===nombreVista){
+
+        return;
+
+    }
+
+    if(!MODULOS[nombreVista]){
+
+        mostrarToast("Módulo en construcción");
+
+        return;
+
+    }
+
+    google.script.run
+
+        .withSuccessHandler(function(html){
+
+            document.getElementById("app").innerHTML = html;
+
+            vistaActual = nombreVista;
+
+            activarNavbar(nombreVista);
+
+            MODULOS[nombreVista].controlador.iniciar();
+
+        })
+
+        .withFailureHandler(function(error){
+
+            console.error(error);
+
+            mostrarToast("No fue posible abrir el módulo.");
+
+        })
+
+        .obtenerVista(nombreVista);
+
+}
+
+function renderVista(html){
+
+    const app = document.getElementById("app");
+
+    if(!app){
+        return;
+    }
+
+    app.innerHTML = html;
+    window.scrollTo(0, 0);
+
+}
+
+</script>

@@ -1,0 +1,148 @@
+<section class="view" id="vistaVentas">
+
+    <header class="view-header">
+
+        <div class="card header-card">
+
+            <div class="header-info">
+
+                <h2>Ventas</h2>
+
+                <p>Registra y administra los pedidos de tus clientes</p>
+
+            </div>
+
+            <div class="logo-circle">
+
+                <span class="material-symbols-outlined">
+                    shopping_cart
+                </span>
+
+            </div>
+
+        </div>
+
+    </header>
+
+    <main class="view-content">
+
+        <!-- ==========================
+             BUSCADOR
+        =========================== -->
+
+        <div class="toolbar">
+
+            <div class="search">
+
+                <span class="material-symbols-outlined">
+                    search
+                </span>
+
+                <input
+                    id="buscadorVentas"
+                    type="search"
+                    placeholder="Buscar cliente, producto, WhatsApp o ID...">
+
+            </div>
+
+            <div class="chips" id="chipsVentas">
+
+                <button
+                    class="chip active"
+                    type="button"
+                    data-filtro="todas">
+
+                    Todas
+
+                </button>
+
+                <button
+                    class="chip"
+                    type="button"
+                    data-filtro="pendientes">
+
+                    Pendientes
+
+                </button>
+
+                <button
+                    class="chip"
+                    type="button"
+                    data-filtro="entregadas">
+
+                    Entregadas
+
+                </button>
+
+                <button
+                    class="chip"
+                    type="button"
+                    data-filtro="hoy">
+
+                    Hoy
+
+                </button>
+
+            </div>
+
+        </div>
+
+        <!-- ==========================
+             LISTA DE VENTAS
+        =========================== -->
+
+        <!-- ==========================
+              HISTORIAL DE VENTAS
+          ========================== -->
+
+        <section
+            id="listaVentas"
+            class="cards-list">
+
+            <div class="empty">
+
+                <span class="material-symbols-outlined">
+
+                    shopping_cart
+
+                </span>
+
+                <h3>
+
+                    Todavía no existen ventas
+
+                </h3>
+
+                <p>
+
+                    Pulsa el botón + para registrar la primera venta.
+
+                </p>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- ==========================
+         BOTÓN FLOTANTE
+    =========================== -->
+
+    <button
+        id="btnNuevaVenta"
+        class="fab"
+        type="button"
+        aria-label="Nueva venta">
+
+        <span class="material-symbols-outlined">
+
+            add
+
+        </span>
+
+    </button>
+
+</section>
+
+<?!= include("modalventa"); ?>

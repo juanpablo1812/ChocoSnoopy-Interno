@@ -1,0 +1,262 @@
+<div
+    id="modalVenta"
+    class="modal-overlay"
+    aria-hidden="true">
+
+    <div class="modal-panel modal-venta">
+
+        <div class="modal-header">
+
+            <div>
+
+                <h3 id="tituloModalVenta">
+                    Nueva venta
+                </h3>
+
+                <p>
+                    Registra un nuevo pedido para un cliente.
+                </p>
+
+            </div>
+
+            <button
+                type="button"
+                class="icon-button"
+                id="btnCerrarModalVenta">
+
+                <span class="material-symbols-outlined">
+                    close
+                </span>
+
+            </button>
+
+        </div>
+
+        <form
+            id="formVenta"
+            class="modal-body">
+
+            <input
+                type="hidden"
+                id="ventaId">
+
+            <!-- =====================================
+                 INFORMACIÓN DEL CLIENTE
+            ====================================== -->
+
+            <h4 class="section-title">
+
+                Información del cliente
+
+            </h4>
+
+            <div class="field-grid">
+
+                <div class="form-group">
+
+                    <label for="ventaCliente">
+
+                        Cliente
+
+                    </label>
+
+                    <input
+                        id="ventaCliente"
+                        class="form-control"
+                        type="text"
+                        placeholder="Nombre del cliente"
+                        autocomplete="off">
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="ventaWhatsapp">
+
+                        WhatsApp
+
+                    </label>
+
+                    <input
+                        id="ventaWhatsapp"
+                        class="form-control"
+                        type="tel"
+                        placeholder="3001234567">
+
+                </div>
+
+            </div>
+
+            <div class="field-grid">
+
+                <div class="form-group">
+
+                    <label for="ventaFechaCreacion">
+
+                        Fecha de creación
+
+                    </label>
+
+                    <input
+                        id="ventaFechaCreacion"
+                        class="form-control"
+                        type="date"
+                        readonly>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="ventaFechaEntrega">
+
+                        Fecha de entrega
+
+                    </label>
+
+                    <input
+                        id="ventaFechaEntrega"
+                        class="form-control"
+                        type="date">
+
+                </div>
+
+            </div>
+
+            <div class="form-group">
+
+                <label for="ventaEstado">
+
+                    Estado
+
+                </label>
+
+                <select
+                    id="ventaEstado"
+                    class="form-select">
+
+                    <option value="Pendiente">
+
+                        Pendiente
+
+                    </option>
+
+                    <option value="Entregada">
+
+                        Entregada
+
+                    </option>
+
+                </select>
+
+            </div>
+
+            <!-- =====================================
+                 PRODUCTOS
+            ====================================== -->
+
+            <h4 class="section-title">
+
+                Productos del pedido
+
+            </h4>
+
+            <div id="listaProductosVenta">
+
+            </div>
+
+            <button
+                type="button"
+                class="btn btn-secondary"
+                id="btnAgregarProductoVenta">
+
+                <span class="material-symbols-outlined">
+
+                    add
+
+                </span>
+
+                Agregar producto
+
+            </button>
+
+            <!-- =====================================
+                 RESUMEN
+            ====================================== -->
+
+            <h4 class="section-title">
+
+                Resumen
+
+            </h4>
+
+            <div class="card venta-total">
+
+                <div>
+
+                    <small>
+
+                        Total del pedido
+
+                    </small>
+
+                    <strong
+                        id="ventaTotal">
+
+                        $0
+
+                    </strong>
+
+                </div>
+
+            </div>
+
+            <!-- =====================================
+                 OBSERVACIONES
+            ====================================== -->
+
+            <h4 class="section-title">
+
+                Observaciones
+
+            </h4>
+
+            <div class="form-group">
+
+                <textarea
+                    id="ventaObservaciones"
+                    class="form-control"
+                    rows="4"
+                    placeholder="Escribe alguna observación si es necesaria..."></textarea>
+
+            </div>
+
+            <!-- =====================================
+                 BOTONES
+            ====================================== -->
+
+            <div class="modal-footer">
+
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    id="btnCancelarVenta">
+
+                    Cancelar
+
+                </button>
+
+                <button
+                    type="submit"
+                    class="btn btn-primary">
+
+                    Guardar venta
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>

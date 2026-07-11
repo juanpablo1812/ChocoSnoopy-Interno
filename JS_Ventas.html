@@ -1,0 +1,893 @@
+<script>
+
+/*====================================
+=             VENTAS
+====================================*/
+
+const Ventas = {
+
+    datos: [],
+
+    productos: [],
+
+    productosVenta: [],
+
+    editando: false,
+
+    ventaActual: null,
+
+    guardando: false,
+
+
+    iniciar(){
+
+        Ventas.eventos();
+
+        Ventas.cargar();
+
+        Ventas.cargarProductos();
+
+    },
+
+    cargar(){
+
+        google.script.run
+
+            .withSuccessHandler(function(datos){
+
+                Ventas.datos = datos || [];
+
+                Ventas.render();
+
+            })
+
+            .withFailureHandler(function(error){
+
+                console.error(error);
+
+                mostrarToast("No fue posible cargar las ventas.");
+
+            })
+
+            .obtenerVentas();
+
+    },
+
+    cargarProductos(){
+
+        google.script.run
+
+            .withSuccessHandler(function(datos){
+
+                Ventas.productos = datos || [];
+
+            })
+
+            .withFailureHandler(function(){
+
+                mostrarToast("No fue posible cargar los productos.");
+
+            })
+
+            .obtenerProductos();
+
+    },
+
+    render(){
+
+        const contenedor = document.getElementById("listaVentas");
+
+        if(!contenedor){
+
+            return;
+
+        }
+
+        if(Ventas.datos.length===0){
+
+            contenedor.innerHTML=`
+
+                <div class="empty">
+
+                    <span class="material-symbols-outlined">
+                        shopping_cart
+                    </span>
+
+                    <h3>No hay ventas registradas</h3>
+
+                    <p>Pulsa el botón + para crear la primera venta.</p>
+
+                </div>
+
+            `;
+
+            return;
+
+        }
+
+        contenedor.innerHTML = Ventas.datos
+            .map(Ventas.renderTarjeta)
+            .join("");
+
+    },
+
+    renderTarjeta(venta){
+
+        const cliente =
+            escapeHTML(venta.Cliente || "Consumidor final");
+
+        const total =
+            dinero(venta.Total || 0);
+
+        const productos =
+            venta.CantidadProductos || 0;
+
+        const estado =
+            (venta.Estado || "Pendiente").toLowerCase();
+
+        let claseEstado="status-warning";
+        let textoEstado="Pendiente";
+
+        if(estado==="entregado"){
+
+            claseEstado="status-success";
+            textoEstado="Entregada";
+
+        }
+
+        if(estado==="cancelado"){
+
+            claseEstado="status-danger";
+            textoEstado="Cancelada";
+
+        }
+
+        return `
+
+        <article class="item-card venta-card">
+
+            <div class="item-header">
+
+                <div class="item-info">
+
+                    <div class="item-title">
+
+                        ${cliente}
+
+                    </div>
+
+                    <div class="item-subtitle">
+
+                        Venta #${escapeHTML(venta.ID || "-")}
+
+                    </div>
+
+                </div>
+
+                <span class="item-status ${claseEstado}">
+
+                    ${textoEstado}
+
+                </span>
+
+            </div>
+
+            <div class="item-metrics">
+
+                <div class="metric">
+
+                    <div class="metric-label">
+
+                        Productos
+
+                    </div>
+
+                    <div class="metric-value">
+
+                        ${productos}
+
+                    </div>
+
+                </div>
+
+                <div class="metric">
+
+                    <div class="metric-label">
+
+                        Entrega
+
+                    </div>
+
+                    <div class="metric-value">
+
+                        ${fechaCorta(venta.FechaEntrega)}
+
+                    </div>
+
+                </div>
+
+                <div class="metric">
+
+                    <div class="metric-label">
+
+                        Total
+
+                    </div>
+
+                    <div class="metric-value">
+
+                        ${total}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="item-actions">
+
+                <button
+                    class="btn btn-secondary">
+
+                    Ver
+
+                </button>
+
+                <button
+                    class="btn btn-primary">
+
+                    Editar
+
+                </button>
+
+            </div>
+
+        </article>
+
+        `;
+
+    },
+
+/*====================================
+=             EVENTOS
+====================================*/
+
+    eventos(){
+
+        const btnNueva =
+            document.getElementById("btnNuevaVenta");
+
+        if(btnNueva){
+
+            btnNueva.onclick = Ventas.abrirModal;
+
+        }
+
+        const btnCerrar =
+            document.getElementById("btnCerrarModalVenta");
+
+        if(btnCerrar){
+
+            btnCerrar.onclick = Ventas.cerrarModal;
+
+        }
+
+        const btnCancelar =
+            document.getElementById("btnCancelarVenta");
+
+        if(btnCancelar){
+
+            btnCancelar.onclick = Ventas.cerrarModal;
+
+        }
+
+        const btnAgregar =
+            document.getElementById("btnAgregarProductoVenta");
+
+        if(btnAgregar){
+
+            btnAgregar.onclick = Ventas.agregarProducto;
+
+        }
+
+        const modal =
+            document.getElementById("modalVenta");
+
+        if(modal){
+
+            modal.addEventListener("click",function(e){
+
+                if(e.target===modal){
+
+                    Ventas.cerrarModal();
+
+                }
+
+            });
+
+        }
+
+        const formulario =
+            document.getElementById("formVenta");
+
+        if(formulario){
+
+            formulario.addEventListener("submit",function(e){
+
+                e.preventDefault();
+
+                Ventas.guardar();
+
+            });
+
+        }
+
+        const listaProductos =
+            document.getElementById("listaProductosVenta");
+
+        if(listaProductos){
+
+            listaProductos.addEventListener("change",function(e){
+
+                if(e.target.classList.contains("producto-select")){
+
+                    const indice =
+                        Number(e.target.dataset.index);
+
+                    Ventas.productosVenta[indice].producto =
+                        e.target.value;
+
+                    Ventas.calcularTotales();
+
+                    Ventas.renderProductos();
+
+                }
+
+                if(e.target.classList.contains("cantidad-producto")){
+
+                    const indice =
+                        Number(e.target.dataset.index);
+
+                    Ventas.productosVenta[indice].cantidad =
+                        Number(e.target.value);
+
+                    Ventas.calcularTotales();
+
+                    Ventas.renderProductos();
+
+                }
+
+            });
+
+            listaProductos.addEventListener("click",function(e){
+
+                const boton =
+                    e.target.closest(".btn-eliminar-producto");
+
+                if(!boton){
+
+                    return;
+
+                }
+
+                const indice =
+                    Number(boton.dataset.index);
+
+                Ventas.eliminarProducto(indice);
+
+            });
+
+        }
+
+    },
+
+/*====================================
+=             MODAL
+====================================*/
+
+    abrirModal(){
+
+        Ventas.limpiarFormulario();
+
+        Ventas.productosVenta = [];
+
+        Ventas.agregarProducto();
+
+        const modal =
+            document.getElementById("modalVenta");
+
+        if(modal){
+
+            modal.classList.add("show");
+
+        }
+
+    },
+
+    cerrarModal(){
+
+        const modal =
+            document.getElementById("modalVenta");
+
+        if(modal){
+
+            modal.classList.remove("show");
+
+        }
+
+    },
+
+    agregarProducto(){
+
+        Ventas.productosVenta.push({
+
+            producto:null,
+
+            cantidad:1,
+
+            precio:0
+
+        });
+
+        Ventas.renderProductos();
+
+        Ventas.calcularTotales();
+
+    },
+
+    renderProductos(){
+
+        const lista =
+            document.getElementById("listaProductosVenta");
+
+        if(!lista){
+
+            return;
+
+        }
+
+        lista.innerHTML = Ventas.productosVenta
+
+            .map(function(producto,index){
+
+                const opciones = Ventas.productos
+
+                    .map(function(p){
+
+                        return `
+
+                            <option
+                                value="${p.ID}"
+                                ${String(producto.producto)===String(p.ID) ? "selected" : ""}>
+
+                                ${escapeHTML(p.Nombre)}
+
+                            </option>
+
+                        `;
+
+                    })
+
+                    .join("");
+
+                return `
+
+                    <div class="producto-venta">
+
+                        <div class="producto-venta-header">
+
+                            <strong>
+
+                                Producto ${index+1}
+
+                            </strong>
+
+                            <button
+                                type="button"
+                                class="btn-eliminar-producto"
+                                data-index="${index}">
+
+                                <span class="material-symbols-outlined">
+
+                                    delete
+
+                                </span>
+
+                            </button>
+
+                        </div>
+
+                        <div class="producto-venta-row">
+
+                            <select
+                                class="form-select producto-select"
+                                data-index="${index}">
+
+                                <option value="">
+
+                                    Selecciona un producto
+
+                                </option>
+
+                                ${opciones}
+
+                            </select>
+
+                            <input
+                                class="form-control cantidad-producto"
+                                type="number"
+                                min="1"
+                                value="${producto.cantidad}"
+                                data-index="${index}">
+
+                        </div>
+
+                        <div class="producto-venta-footer">
+
+                            <div>
+
+                                <small>
+
+                                    Precio unitario
+
+                                </small>
+
+                                <br>
+
+                                <strong>
+
+                                    ${dinero(producto.precio || 0)}
+
+                                </strong>
+
+                            </div>
+
+                            <div style="text-align:right;">
+
+                                <small>
+
+                                    Subtotal
+
+                                </small>
+
+                                <br>
+
+                                <strong class="subtotal-producto">
+
+                                    ${dinero(producto.subtotal || 0)}
+
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                `;
+
+            })
+
+            .join("");
+
+    },
+
+    eliminarProducto(indice){
+
+        Ventas.productosVenta.splice(indice,1);
+
+        if(Ventas.productosVenta.length===0){
+
+            Ventas.agregarProducto();
+
+            return;
+
+        }
+
+        Ventas.renderProductos();
+
+        Ventas.calcularTotales();
+
+    },
+
+    obtenerProducto(idProducto){
+
+        return Ventas.productos.find(function(producto){
+
+            return String(producto.ID)===String(idProducto);
+
+        });
+
+    },
+
+    calcularTotales(){
+
+        let total = 0;
+
+        Ventas.productosVenta.forEach(function(item){
+
+            const producto =
+                Ventas.obtenerProducto(item.producto);
+
+            if(!producto){
+
+                item.precio = 0;
+                item.subtotal = 0;
+                return;
+
+            }
+
+            item.precio =
+                Number(producto.PrecioVenta || 0);
+
+            item.subtotal =
+                item.precio * item.cantidad;
+
+            total += item.subtotal;
+
+        });
+
+        const totalVenta =
+            document.getElementById("ventaTotal");
+
+        if(totalVenta){
+
+            totalVenta.textContent =
+                dinero(total);
+
+        }
+
+    },
+
+    validarVenta(){
+
+        if(Ventas.productosVenta.length===0){
+
+            mostrarToast("Agrega al menos un producto.");
+
+            return false;
+
+        }
+
+        const productosSeleccionados = [];
+
+        for(const item of Ventas.productosVenta){
+
+            if(!item.producto){
+
+                mostrarToast("Selecciona todos los productos.");
+
+                const selector = document.querySelector(
+                    '.producto-select[data-index="' + productosSeleccionados.length + '"]'
+                );
+
+                if(selector){
+
+                    selector.focus();
+
+                }
+
+                return false;
+
+            }
+
+            if(item.cantidad<=0){
+
+                mostrarToast("La cantidad debe ser mayor que cero.");
+
+                return false;
+
+            }
+
+            if(productosSeleccionados.includes(item.producto)){
+
+                mostrarToast("No puedes agregar el mismo producto dos veces.");
+
+                return false;
+
+            }
+
+            productosSeleccionados.push(item.producto);
+
+        }
+
+        return true;
+
+    },
+
+    obtenerDatosFormulario(){
+
+        const cliente =
+            document.getElementById("ventaCliente").value.trim();
+
+        const whatsapp =
+            document.getElementById("ventaWhatsapp").value.trim();
+
+        const fechaCreacion =
+            document.getElementById("ventaFechaCreacion").value;
+
+        const fechaEntrega =
+            document.getElementById("ventaFechaEntrega").value;
+
+        const estado =
+            document.getElementById("ventaEstado").value;
+
+        let total = 0;
+
+        let ganancia = 0;
+
+        const productos = Ventas.productosVenta.map(function(item){
+
+            const producto = Ventas.productos.find(function(p){
+
+                return String(p.ID) === String(item.producto);
+
+            });
+
+            if(!producto){
+
+                return null;
+
+            }
+
+            const precio =
+                Number(producto.PrecioVenta || 0);
+
+            const cantidad =
+                Number(item.cantidad || 1);
+
+            const subtotal =
+                precio * cantidad;
+
+            total += subtotal;
+
+            return{
+
+                IDProducto: producto.ID,
+
+                NombreProducto: producto.Nombre,
+
+                Cantidad: cantidad,
+
+                PrecioUnitario: precio,
+
+                Subtotal: subtotal
+
+            };
+
+        }).filter(Boolean);
+
+        return{
+
+            Cliente: cliente,
+
+            Whatsapp: whatsapp,
+
+            FechaCreacion: fechaCreacion,
+
+            FechaEntrega: fechaEntrega,
+
+            Estado: estado,
+
+            Total: total,
+
+            Ganancia: ganancia,
+
+            CantidadProductos: productos.length,
+
+            Productos: productos
+
+        };
+
+    },
+
+    guardar(){
+
+        if(Ventas.guardando || !Ventas.validarVenta()){
+
+            return;
+
+        }
+
+        const datos =
+            Ventas.obtenerDatosFormulario();
+
+        Ventas.guardando = true;
+
+        const botonGuardar = document.querySelector("#formVenta button[type='submit']");
+
+        if(botonGuardar){
+
+            botonGuardar.disabled = true;
+
+        }
+
+        google.script.run
+
+            .withSuccessHandler(function(respuesta){
+
+                mostrarToast(
+                    "Venta guardada correctamente."
+                );
+
+                Ventas.cerrarModal();
+
+                Ventas.cargar();
+
+                Ventas.guardando = false;
+
+                if(botonGuardar){
+
+                    botonGuardar.disabled = false;
+
+                }
+
+            })
+
+            .withFailureHandler(function(error){
+
+                console.error(error);
+
+                mostrarToast(
+                    error.message ||
+                    "No fue posible guardar la venta."
+                );
+
+                Ventas.guardando = false;
+
+                if(botonGuardar){
+
+                    botonGuardar.disabled = false;
+
+                }
+
+            })
+
+            .guardarVentaCompleta(datos);
+
+    },
+
+    limpiarFormulario(){
+
+        const formulario =
+            document.getElementById("formVenta");
+
+        if(formulario){
+
+            formulario.reset();
+
+        }
+
+        const fechaHoy = new Date();
+
+        const yyyy = fechaHoy.getFullYear();
+
+        const mm = String(fechaHoy.getMonth()+1).padStart(2,"0");
+
+        const dd = String(fechaHoy.getDate()).padStart(2,"0");
+
+        const hoy = `${yyyy}-${mm}-${dd}`;
+
+        const fechaVenta =
+            document.getElementById("ventaFechaCreacion");
+
+        if(fechaVenta){
+
+            fechaVenta.value = hoy;
+
+        }
+
+        const fechaEntrega =
+            document.getElementById("ventaFechaEntrega");
+
+        if(fechaEntrega){
+
+            fechaEntrega.value = hoy;
+
+        }
+
+    }
+
+};
+
+</script>
