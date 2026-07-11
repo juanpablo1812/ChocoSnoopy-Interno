@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-background text-ink antialiased;
+  font-family: "Poppins", system-ui, sans-serif;
+}
+
+/* Iconos Material Symbols */
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-white hover:bg-red-600;
+  }
+  .btn-secondary {
+    @apply btn bg-primary/40 text-ink hover:bg-primary/60;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-muted hover:bg-black/5;
+  }
+
+  .card {
+    @apply rounded-xl2 bg-surface p-4 shadow-card;
+  }
+
+  .form-label {
+    @apply mb-1 block text-sm font-medium text-ink;
+  }
+  .form-control,
+  .form-select {
+    @apply w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-primary-dark focus:ring-2 focus:ring-primary/40;
+  }
+
+  .status-pill {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold;
+  }
+  .status-success {
+    @apply bg-green-100 text-green-700;
+  }
+  .status-warning {
+    @apply bg-amber-100 text-amber-700;
+  }
+  .status-danger {
+    @apply bg-rose-100 text-rose-700;
+  }
+  .status-muted {
+    @apply bg-gray-100 text-gray-500;
+  }
+}

@@ -1,0 +1,68 @@
+import { z } from "zod";
+
+/**
+ * Esquemas de validación (portan las reglas de Validaciones.gs y las
+ * validaciones de Productos.gs / Inventario.gs / Ventas.gs al lado del
+ * servidor). La base de datos aplica además sus propios CHECK constraints.
+ */
+
+const textoRequerido = z.string().trim().min(1, "Este campo es obligatorio.");
+
+export const materiaPrimaSchema = z.object({
+  id: z.coerce.number().int().positive().optional().nullable(),
+  nombre: textoRequerido,
+  unidad: textoRequerido,
+  cantidad_presentacion: z.coerce
+    .number()
+    .positive("La cantidad de presentación debe ser mayor que cero."),
+  costo_total_compra: z.coerce
+    .number()
+    .min(0, "El costo total de compra no puede ser negativo."),
+  stock_actual: z.coerce
+    .number()
+    .min(0, "La cantidad disponible no puede ser negativa."),
+  stock_minimo: z.coerce
+    .number()
+    .min(0, "El nivel mínimo no puede ser negativo."),
+  estado: z.enum(["Activo", "Inactivo"]).default("Activo"),
+  fecha_ingreso: z.string().optional().nullable(),
+});
+export type MateriaPrimaInput = z.infer<typeof materiaPrimaSchema>;
+
+export const recetaItemSchema = z.object({
+  materia_prima_id: z.coerce.number().int().positive(),
+  cantidad: z.coerce.number().positive("Cada cantidad debe ser mayor que cero."),
+});
+
+export const productoSchema = z.object({
+  id: z.coerce.number().int().positive().optional().nullable(),
+  nombre: textoRequerido,
+  categoria: z.string().trim().default(""),
+  precio_venta: z.coerce
+    .number()
+    .positive("El precio de venta debe ser mayor que cero."),
+  estado: z.enum(["Activo", "Inactivo"]).default("Activo"),
+  recetas: z
+    .array(recetaItemSchema)
+    .min(1, "Debes agregar al menos una materia prima a la receta."),
+});
+export type ProductoInput = z.infer<typeof productoSchema>;
+
+export const ventaProductoSchema = z.object({
+  producto_id: z.coerce.number().int().positive(),
+  cantidad: z.coerce
+    .number()
+    .int("La cantidad debe ser un número entero.")
+    .positive("La cantidad debe ser mayor que cero."),
+});
+
+export const ventaSchema = z.object({
+  cliente: z.string().trim().default(""),
+  whatsapp: z.string().trim().default(""),
+  fecha_entrega: textoRequerido,
+  estado: z.enum(["Pendiente", "Entregada"]).default("Pendiente"),
+  productos: z
+    .array(ventaProductoSchema)
+    .min(1, "Agrega al menos un producto a la venta."),
+});
+export type VentaInput = z.infer<typeof ventaSchema>;
