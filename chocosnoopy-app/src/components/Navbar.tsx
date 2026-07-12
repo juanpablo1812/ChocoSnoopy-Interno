@@ -9,6 +9,7 @@ const ENLACES = [
   { href: "/productos", icono: "inventory_2", etiqueta: "Productos", animacion: "productos" },
   { href: "/inventario", icono: "warehouse", etiqueta: "Inventario", animacion: "inventario" },
   { href: "/ventas", icono: "shopping_cart", etiqueta: "Ventas", animacion: "ventas" },
+  { href: "/contabilidad", icono: "account_balance_wallet", etiqueta: "Cuentas", animacion: "contabilidad" },
 ];
 
 export default function Navbar() {
