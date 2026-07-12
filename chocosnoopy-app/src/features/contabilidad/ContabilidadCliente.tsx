@@ -79,6 +79,7 @@ export default function ContabilidadCliente({ datos }: { datos: DatosContabilida
   const [desde, setDesde] = useState(datos.desde);
   const [hasta, setHasta] = useState(datos.hasta);
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Bogota" });
+  const rangoSeleccionado = mostrarRango || datos.periodo === "personalizado";
 
   function cambiarPeriodo(periodo: string) {
     setMostrarRango(false);
@@ -95,11 +96,11 @@ export default function ContabilidadCliente({ datos }: { datos: DatosContabilida
 
     <section className="mb-4">
       <div className="flex rounded-xl2 bg-primary-dark/35 p-1">
-        {PERIODOS.map((item) => <button key={item.valor} onClick={() => cambiarPeriodo(item.valor)} className={`flex-1 rounded-xl px-2 py-2 text-xs font-semibold transition ${datos.periodo === item.valor ? "bg-secondary text-accent shadow-sm" : "text-ink/70"}`}>{item.etiqueta}</button>)}
-        <button onClick={() => setMostrarRango((actual) => !actual)} className={`flex-1 rounded-xl px-2 py-2 text-xs font-semibold transition ${datos.periodo === "personalizado" || mostrarRango ? "bg-secondary text-accent shadow-sm" : "text-ink/70"}`}>Rango</button>
+        {PERIODOS.map((item) => <button key={item.valor} onClick={() => cambiarPeriodo(item.valor)} className={`flex-1 rounded-xl px-2 py-2 text-xs font-semibold transition ${!rangoSeleccionado && datos.periodo === item.valor ? "bg-secondary text-accent shadow-sm" : "text-ink/70"}`}>{item.etiqueta}</button>)}
+        <button onClick={() => setMostrarRango((actual) => !actual)} className={`flex-1 rounded-xl px-2 py-2 text-xs font-semibold transition ${rangoSeleccionado ? "bg-secondary text-accent shadow-sm" : "text-ink/70"}`}>Rango</button>
       </div>
       {mostrarRango && <form onSubmit={aplicarRango} className="mt-3 rounded-xl2 bg-surface p-3 shadow-card">
-        <p className="mb-2 text-xs text-muted">Compara un rango de hasta 366 d\u00edas con el periodo inmediatamente anterior.</p>
+        <p className="mb-2 text-xs text-muted">Compara un período de hasta 366 días con el período inmediatamente anterior.</p>
         <div className="grid grid-cols-2 gap-2"><label className="text-xs font-medium">Desde<input required max={hoy} value={desde} onChange={(e) => setDesde(e.target.value)} type="date" className="form-control mt-1" /></label><label className="text-xs font-medium">Hasta<input required min={desde} max={hoy} value={hasta} onChange={(e) => setHasta(e.target.value)} type="date" className="form-control mt-1" /></label></div>
         <button className="btn-primary mt-3 w-full text-sm">Ver reporte</button>
       </form>}

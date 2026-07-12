@@ -29,7 +29,7 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <PageHeader titulo="Chocosnoopy" subtitulo="Panel de control" />
+      <PageHeader titulo="Chocosnoopy" subtitulo="Panel de control" logo />
 
       <section className="flex flex-col gap-3">
         <Resumen titulo="Hoy" datos={data.hoy} />

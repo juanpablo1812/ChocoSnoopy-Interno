@@ -4,7 +4,7 @@
   "private": true,
   "description": "Sistema de gestion interna para Chocosnoopy (Next.js + Supabase)",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbo",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const ENLACES = [
   { href: "/", icono: "home", etiqueta: "Inicio", animacion: "inicio" },
@@ -14,7 +14,21 @@ const ENLACES = [
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [repeticion, setRepeticion] = useState(0);
+
+  useEffect(() => {
+    // Las rutas con datos dinámicos no se precargan automáticamente de forma
+    // completa. Hacerlo cuando la pantalla ya está lista evita la espera de
+    // la primera vez que se abre cada módulo.
+    const temporizador = window.setTimeout(() => {
+      ENLACES.filter((enlace) => enlace.href !== pathname).forEach((enlace) => {
+        router.prefetch(enlace.href);
+      });
+    }, 300);
+
+    return () => window.clearTimeout(temporizador);
+  }, [pathname, router]);
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-accent bg-primary-dark shadow-nav">
