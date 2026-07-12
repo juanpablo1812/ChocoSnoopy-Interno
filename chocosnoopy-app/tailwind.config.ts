@@ -12,9 +12,10 @@ const config: Config = {
         // Tema Chocosnoopy (portado de Constantes.gs / CSS_Base)
         primary: "#F3BFCC",
         "primary-dark": "#E79FB4",
+        secondary: "#FFFFFF",
         accent: "#FE3F47",
         surface: "#FFFFFF",
-        background: "#FAFAFA",
+        background: "#F3BFCC",
         ink: "#2B2B2B",
         muted: "#7A7A7A",
         success: "#1BA85B",
@@ -25,8 +26,9 @@ const config: Config = {
         sans: ["Poppins", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        card: "0 4px 16px rgba(0, 0, 0, 0.06)",
-        nav: "0 -2px 12px rgba(0, 0, 0, 0.08)",
+        card: "0 6px 18px rgba(151, 58, 87, 0.14)",
+        nav: "0 -3px 16px rgba(151, 58, 87, 0.22)",
+        "nav-active": "0 0 12px rgba(255, 255, 255, 0.95), 0 0 24px rgba(255, 255, 255, 0.55)",
       },
       borderRadius: {
         xl2: "1.25rem",
