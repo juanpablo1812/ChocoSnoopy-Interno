@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import { ventaSchema } from "@/lib/validation";
+import { pagosVentaSchema, ventaSchema } from "@/lib/validation";
 import type { EstadoVenta, Resultado } from "@/lib/types";
 
 function mensajeError(e: unknown): string {
@@ -19,7 +19,7 @@ export async function crearVenta(input: unknown): Promise<Resultado> {
     const datos = ventaSchema.parse(input);
     const supabase = crearClienteServidor();
 
-    const { error } = await supabase.rpc("crear_venta", {
+    const { error } = await supabase.rpc("crear_venta_con_propina", {
       payload: {
         cliente: datos.cliente,
         whatsapp: datos.whatsapp,
@@ -29,6 +29,8 @@ export async function crearVenta(input: unknown): Promise<Resultado> {
           producto_id: p.producto_id,
           cantidad: p.cantidad,
         })),
+        pagos: datos.pagos,
+        propina: datos.propina,
       },
     });
     if (error) throw new Error(error.message);
@@ -37,6 +39,30 @@ export async function crearVenta(input: unknown): Promise<Resultado> {
     revalidatePath("/inventario");
     revalidatePath("/");
     return { ok: true, mensaje: "Venta guardada correctamente." };
+  } catch (e) {
+    return { ok: false, error: mensajeError(e) };
+  }
+}
+
+/** Registra uno o varios abonos para una venta ya creada. */
+export async function agregarPagosVenta(ventaId: number, input: unknown): Promise<Resultado> {
+  try {
+    if (!Number.isInteger(ventaId) || ventaId <= 0) {
+      return { ok: false, error: "La venta no es válida." };
+    }
+
+    const datos = pagosVentaSchema.parse(input);
+    const supabase = crearClienteServidor();
+    const { error } = await supabase.rpc("agregar_pagos_y_propina", {
+      p_id: ventaId,
+      p_pagos: datos.pagos,
+      p_propina: datos.propina,
+    });
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/ventas");
+    revalidatePath("/");
+    return { ok: true, mensaje: "Pago registrado correctamente." };
   } catch (e) {
     return { ok: false, error: mensajeError(e) };
   }

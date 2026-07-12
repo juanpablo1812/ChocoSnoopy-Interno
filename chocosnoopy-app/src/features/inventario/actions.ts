@@ -62,6 +62,7 @@ export async function guardarMateriaPrima(input: unknown): Promise<Resultado> {
 
     revalidatePath("/inventario");
     revalidatePath("/productos");
+    revalidatePath("/");
     return { ok: true, mensaje: "Materia prima guardada correctamente." };
   } catch (e) {
     return { ok: false, error: mensajeError(e) };
@@ -88,6 +89,7 @@ export async function cambiarEstadoMateriaPrima(id: number): Promise<Resultado> 
 
     revalidatePath("/inventario");
     revalidatePath("/productos");
+    revalidatePath("/");
     return { ok: true, mensaje: `Materia prima ${nuevoEstado === "Activo" ? "activada" : "desactivada"}.` };
   } catch (e) {
     return { ok: false, error: mensajeError(e) };
@@ -127,6 +129,7 @@ export async function ajustarStock(id: number, delta: number): Promise<Resultado
     });
 
     revalidatePath("/inventario");
+    revalidatePath("/");
     return { ok: true, mensaje: "Stock actualizado correctamente." };
   } catch (e) {
     return { ok: false, error: mensajeError(e) };

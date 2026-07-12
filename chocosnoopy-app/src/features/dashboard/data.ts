@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_noStore as noStore } from "next/cache";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import type { AlertaInventario, DashboardData, ResumenVentas } from "@/lib/types";
 
@@ -29,32 +30,73 @@ function limitesBogota(): { hoy: number; semana: number; mes: number } {
   };
 }
 
-function resumir(ventas: { total: number; ganancia: number }[]): ResumenVentas {
+interface IngresoConVenta {
+  monto: number;
+  fecha: string;
+  ganancia: number;
+  esPago: boolean;
+}
+
+interface IngresoConFecha extends IngresoConVenta {
+  ms: number;
+}
+
+function resumir(ingresos: IngresoConVenta[]): ResumenVentas {
   return {
-    ventas: ventas.length,
-    ingresos: ventas.reduce((t, v) => t + Number(v.total || 0), 0),
-    ganancia: ventas.reduce((t, v) => t + Number(v.ganancia || 0), 0),
+    pagos: ingresos.filter((ingreso) => ingreso.esPago).length,
+    ingresos: ingresos.reduce((t, ingreso) => t + Number(ingreso.monto || 0), 0),
+    ganancia: ingresos.reduce((t, ingreso) => t + Number(ingreso.ganancia || 0), 0),
   };
 }
 
 export async function obtenerDashboard(): Promise<DashboardData> {
+  // El inventario debe reflejar los valores actuales en cada visita a Inicio.
+  noStore();
+
   const supabase = crearClienteServidor();
   const limites = limitesBogota();
   const desde = Math.min(limites.semana, limites.mes);
 
-  // Ventas del periodo (excluye canceladas: no representan ingreso ni utilidad).
-  const { data: ventas, error } = await supabase
-    .from("ventas")
-    .select("fecha_creacion, total, ganancia, estado")
-    .neq("estado", "Cancelada")
-    .gte("fecha_creacion", new Date(desde).toISOString());
-  if (error) throw new Error(error.message);
+  // Dinero realmente recibido en el periodo. Los pagos de ventas canceladas
+  // no cuentan como ingreso ni utilidad.
+  const [{ data: pagos, error: errorPagos }, { data: propinas, error: errorPropinas }] = await Promise.all([
+    supabase
+      .from("pagos_ventas")
+      .select("monto, fecha, ventas!inner(total, ganancia, estado)")
+      .neq("ventas.estado", "Cancelada")
+      .gte("fecha", new Date(desde).toISOString()),
+    supabase
+      .from("propinas_ventas")
+      .select("monto, fecha, ventas!inner(estado)")
+      .neq("ventas.estado", "Cancelada")
+      .gte("fecha", new Date(desde).toISOString()),
+  ]);
+  if (errorPagos) throw new Error(errorPagos.message);
+  if (errorPropinas) throw new Error(errorPropinas.message);
 
-  const filas = (ventas ?? []).map((v) => ({
-    ms: Date.parse(v.fecha_creacion as string),
-    total: Number(v.total),
-    ganancia: Number(v.ganancia),
+  const filasPagos: IngresoConFecha[] = (pagos ?? []).map((p) => {
+    const venta = Array.isArray(p.ventas) ? p.ventas[0] : p.ventas;
+    return {
+      monto: Number(p.monto),
+      fecha: p.fecha as string,
+      ganancia:
+        venta && Number(venta.total) > 0
+          ? (Number(p.monto) / Number(venta.total)) * Number(venta.ganancia || 0)
+          : 0,
+      esPago: true,
+      ms: Date.parse(p.fecha as string),
+    };
+  });
+
+  const filasPropinas: IngresoConFecha[] = (propinas ?? []).map((propina) => ({
+    monto: Number(propina.monto),
+    fecha: propina.fecha as string,
+    ganancia: Number(propina.monto),
+    esPago: false,
+    ms: Date.parse(propina.fecha as string),
   }));
+
+  const filas = [...filasPagos, ...filasPropinas];
 
   const hoy = resumir(filas.filter((f) => f.ms >= limites.hoy));
   const semana = resumir(filas.filter((f) => f.ms >= limites.semana));

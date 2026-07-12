@@ -13,11 +13,11 @@ function Resumen({ titulo, datos }: { titulo: string; datos: ResumenVentas }) {
       <div className="mt-2 flex items-end justify-between">
         <div>
           <div className="text-2xl font-bold">{dinero(datos.ingresos)}</div>
-          <div className="text-xs text-muted">{datos.ventas} ventas</div>
+          <div className="text-xs text-muted">{datos.pagos} pagos recibidos</div>
         </div>
         <div className="text-right">
           <div className="text-sm font-semibold text-green-600">{dinero(datos.ganancia)}</div>
-          <div className="text-xs text-muted">ganancia</div>
+          <div className="text-xs text-muted">utilidad estimada</div>
         </div>
       </div>
     </div>

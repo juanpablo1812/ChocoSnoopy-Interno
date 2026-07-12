@@ -56,6 +56,23 @@ export const ventaProductoSchema = z.object({
     .positive("La cantidad debe ser mayor que cero."),
 });
 
+export const metodoPagoSchema = z.enum(["Efectivo", "Transferencia"]);
+
+export const pagoVentaSchema = z.object({
+  monto: z.coerce.number().positive("El pago debe ser mayor que cero."),
+  metodo: metodoPagoSchema,
+});
+
+export const propinaSchema = z.coerce
+  .number()
+  .min(0, "La propina no puede ser negativa.")
+  .default(0);
+
+export const pagosVentaSchema = z.object({
+  pagos: z.array(pagoVentaSchema).min(1, "Agrega al menos un pago."),
+  propina: propinaSchema,
+});
+
 export const ventaSchema = z.object({
   cliente: z.string().trim().default(""),
   whatsapp: z.string().trim().default(""),
@@ -64,5 +81,7 @@ export const ventaSchema = z.object({
   productos: z
     .array(ventaProductoSchema)
     .min(1, "Agrega al menos un producto a la venta."),
+  pagos: z.array(pagoVentaSchema).default([]),
+  propina: propinaSchema,
 });
 export type VentaInput = z.infer<typeof ventaSchema>;

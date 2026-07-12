@@ -4,6 +4,7 @@
 
 export type Estado = "Activo" | "Inactivo";
 export type EstadoVenta = "Pendiente" | "Entregada" | "Cancelada";
+export type MetodoPago = "Efectivo" | "Transferencia";
 
 export interface MateriaPrima {
   id: number;
@@ -59,6 +60,28 @@ export interface Venta {
   ganancia: number;
   cantidad_productos: number;
   created_at: string;
+  pagos: PagoVenta[];
+  propinas: PropinaVenta[];
+}
+
+/** Abono registrado para una venta. */
+export interface PagoVenta {
+  id: number;
+  venta_id: number;
+  numero: number;
+  monto: number;
+  metodo: MetodoPago;
+  fecha: string;
+  created_at: string;
+}
+
+/** Propina recibida junto con un pago de la venta. */
+export interface PropinaVenta {
+  id: number;
+  venta_id: number;
+  monto: number;
+  fecha: string;
+  created_at: string;
 }
 
 export interface DetalleVenta {
@@ -72,7 +95,7 @@ export interface DetalleVenta {
 }
 
 export interface ResumenVentas {
-  ventas: number;
+  pagos: number;
   ingresos: number;
   ganancia: number;
 }

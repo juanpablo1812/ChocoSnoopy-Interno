@@ -1,6 +1,6 @@
 import "server-only";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import type { Venta } from "@/lib/types";
+import type { PagoVenta, PropinaVenta, Venta } from "@/lib/types";
 
 export interface ProductoVenta {
   id: number;
@@ -13,11 +13,21 @@ export async function listarVentas(): Promise<Venta[]> {
   const supabase = crearClienteServidor();
   const { data, error } = await supabase
     .from("ventas")
-    .select("*")
+    .select("*, pagos_ventas(*), propinas_ventas(*)")
     .order("fecha_creacion", { ascending: false });
 
   if (error) throw new Error(error.message);
-  return data as Venta[];
+  return (data ?? []).map((venta) => {
+    const { pagos_ventas, propinas_ventas, ...datosVenta } = venta as Venta & {
+      pagos_ventas?: PagoVenta[];
+      propinas_ventas?: PropinaVenta[];
+    };
+    return {
+      ...datosVenta,
+      pagos: [...(pagos_ventas ?? [])].sort((a, b) => a.numero - b.numero),
+      propinas: [...(propinas_ventas ?? [])],
+    };
+  });
 }
 
 /** Productos activos disponibles para vender (los que tienen receta). */

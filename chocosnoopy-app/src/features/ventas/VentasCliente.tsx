@@ -7,9 +7,9 @@ import EmptyState from "@/components/EmptyState";
 import PageHeader from "@/components/PageHeader";
 import { useToast } from "@/components/Toast";
 import { dinero, fechaCorta, hoyISO } from "@/lib/format";
-import type { EstadoVenta, Venta } from "@/lib/types";
+import type { EstadoVenta, MetodoPago, Venta } from "@/lib/types";
 import type { ProductoVenta } from "./data";
-import { crearVenta, cambiarEstadoVenta } from "./actions";
+import { agregarPagosVenta, cambiarEstadoVenta, crearVenta } from "./actions";
 
 interface Props {
   ventas: Venta[];
@@ -21,10 +21,112 @@ interface Linea {
   cantidad: string;
 }
 
+interface PagoFormulario {
+  monto: string;
+  metodo: MetodoPago;
+}
+
+interface EditorPagosProps {
+  pagos: PagoFormulario[];
+  numeroInicial: number;
+  onChange: (pagos: PagoFormulario[]) => void;
+}
+
 function estadoPill(estado: EstadoVenta): { clase: string; texto: string } {
   if (estado === "Entregada") return { clase: "status-success", texto: "Entregada" };
   if (estado === "Cancelada") return { clase: "status-danger", texto: "Cancelada" };
   return { clase: "status-warning", texto: "Pendiente" };
+}
+
+function sumaPagos(pagos: { monto: number }[]): number {
+  return pagos.reduce((total, pago) => total + Number(pago.monto || 0), 0);
+}
+
+function EditorPagos({ pagos, numeroInicial, onChange }: EditorPagosProps) {
+  function agregarPago() {
+    onChange([...pagos, { monto: "", metodo: "Efectivo" }]);
+  }
+
+  function editarPago(indice: number, campo: keyof PagoFormulario, valor: string) {
+    onChange(
+      pagos.map((pago, i) =>
+        i === indice
+          ? { ...pago, [campo]: campo === "metodo" ? (valor as MetodoPago) : valor }
+          : pago,
+      ),
+    );
+  }
+
+  function quitarPago(indice: number) {
+    onChange(pagos.filter((_, i) => i !== indice));
+  }
+
+  return (
+    <div>
+      <label className="form-label">Pagos recibidos</label>
+      <p className="mb-2 text-xs text-muted">
+        Agrega cada abono con el medio por el que se recibió. Puedes dejarlo vacío si aún no ha pagado.
+      </p>
+
+      <div className="flex flex-col gap-2">
+        {pagos.map((pago, indice) => (
+          <div key={indice} className="rounded-xl border border-black/10 p-2">
+            <div className="mb-1 text-xs font-semibold text-muted">Pago {numeroInicial + indice + 1}</div>
+            <div className="flex items-center gap-2">
+              <input
+                className="form-control min-w-0 flex-1"
+                type="number"
+                min="0.01"
+                step="0.01"
+                placeholder="Monto"
+                value={pago.monto}
+                onChange={(e) => editarPago(indice, "monto", e.target.value)}
+              />
+              <select
+                className="form-select w-36"
+                value={pago.metodo}
+                onChange={(e) => editarPago(indice, "metodo", e.target.value)}
+              >
+                <option value="Efectivo">Efectivo</option>
+                <option value="Transferencia">Transferencia</option>
+              </select>
+              <button
+                type="button"
+                className="btn-ghost !px-2"
+                onClick={() => quitarPago(indice)}
+                aria-label={`Quitar pago ${numeroInicial + indice + 1}`}
+              >
+                <span className="material-symbols-outlined text-xl">delete</span>
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button type="button" className="btn-secondary mt-2 text-sm" onClick={agregarPago}>
+        <span className="material-symbols-outlined text-lg">add</span>
+        Agregar pago
+      </button>
+    </div>
+  );
+}
+
+function CampoPropina({ valor, onChange }: { valor: string; onChange: (valor: string) => void }) {
+  return (
+    <div>
+      <label className="form-label">Propina (opcional)</label>
+      <input
+        className="form-control"
+        type="number"
+        min="0"
+        step="0.01"
+        placeholder="0"
+        value={valor}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <p className="mt-1 text-xs text-muted">Se registra como ganancia adicional y no reduce el saldo de la venta.</p>
+    </div>
+  );
 }
 
 export default function VentasCliente({ ventas, productos }: Props) {
@@ -38,7 +140,14 @@ export default function VentasCliente({ ventas, productos }: Props) {
   const [fechaEntrega, setFechaEntrega] = useState(hoyISO());
   const [estado, setEstado] = useState<"Pendiente" | "Entregada">("Pendiente");
   const [lineas, setLineas] = useState<Linea[]>([]);
+  const [pagos, setPagos] = useState<PagoFormulario[]>([]);
+  const [propina, setPropina] = useState("");
   const [guardando, setGuardando] = useState(false);
+
+  const [ventaParaPago, setVentaParaPago] = useState<Venta | null>(null);
+  const [pagosNuevos, setPagosNuevos] = useState<PagoFormulario[]>([]);
+  const [propinaNueva, setPropinaNueva] = useState("");
+  const [guardandoPago, setGuardandoPago] = useState(false);
 
   const mapaProductos = useMemo(() => {
     const m = new Map<number, ProductoVenta>();
@@ -60,6 +169,8 @@ export default function VentasCliente({ ventas, productos }: Props) {
     setFechaEntrega(hoyISO());
     setEstado("Pendiente");
     setLineas([{ producto_id: "", cantidad: "1" }]);
+    setPagos([]);
+    setPropina("");
     setModalAbierto(true);
   }
 
@@ -74,6 +185,25 @@ export default function VentasCliente({ ventas, productos }: Props) {
 
   function editarLinea(indice: number, campo: keyof Linea, valor: string) {
     setLineas(lineas.map((l, i) => (i === indice ? { ...l, [campo]: valor } : l)));
+  }
+
+  function prepararPagos(pagosFormulario: PagoFormulario[]): PagoFormulario[] | null {
+    const pagosConMonto = pagosFormulario.filter((pago) => pago.monto.trim() !== "");
+    if (pagosConMonto.some((pago) => !Number.isFinite(Number(pago.monto)) || Number(pago.monto) <= 0)) {
+      mostrar("Cada pago debe ser mayor que cero.", "error");
+      return null;
+    }
+    return pagosConMonto;
+  }
+
+  function prepararPropina(valor: string): number | null {
+    if (valor.trim() === "") return 0;
+    const monto = Number(valor);
+    if (!Number.isFinite(monto) || monto < 0) {
+      mostrar("La propina no puede ser negativa.", "error");
+      return null;
+    }
+    return monto;
   }
 
   async function onGuardar(e: React.FormEvent) {
@@ -91,6 +221,16 @@ export default function VentasCliente({ ventas, productos }: Props) {
       return;
     }
 
+    const pagosValidos = prepararPagos(pagos);
+    if (!pagosValidos) return;
+    const propinaValida = prepararPropina(propina);
+    if (propinaValida === null) return;
+    const montoPagado = sumaPagos(pagosValidos.map((pago) => ({ monto: Number(pago.monto) })));
+    if (montoPagado > total + 0.001) {
+      mostrar("Los pagos no pueden superar el total de la venta.", "error");
+      return;
+    }
+
     setGuardando(true);
     const res = await crearVenta({
       cliente,
@@ -101,12 +241,59 @@ export default function VentasCliente({ ventas, productos }: Props) {
         producto_id: Number(l.producto_id),
         cantidad: Number(l.cantidad),
       })),
+      pagos: pagosValidos.map((pago) => ({
+        monto: Number(pago.monto),
+        metodo: pago.metodo,
+      })),
+      propina: propinaValida,
     });
     setGuardando(false);
 
     if (res.ok) {
       mostrar(res.mensaje ?? "Venta guardada.", "success");
       setModalAbierto(false);
+      router.refresh();
+    } else {
+      mostrar(res.error, "error");
+    }
+  }
+
+  function abrirPagos(venta: Venta) {
+    setVentaParaPago(venta);
+    setPagosNuevos([]);
+    setPropinaNueva("");
+  }
+
+  async function onGuardarPagos(e: React.FormEvent) {
+    e.preventDefault();
+    if (!ventaParaPago || guardandoPago) return;
+
+    const pagosValidos = prepararPagos(pagosNuevos);
+    if (!pagosValidos || pagosValidos.length === 0) {
+      if (pagosValidos?.length === 0) mostrar("Agrega al menos un pago.", "error");
+      return;
+    }
+    const propinaValida = prepararPropina(propinaNueva);
+    if (propinaValida === null) return;
+
+    const yaPagado = sumaPagos(ventaParaPago.pagos);
+    const saldo = Math.max(0, Number(ventaParaPago.total) - yaPagado);
+    const nuevoPago = sumaPagos(pagosValidos.map((pago) => ({ monto: Number(pago.monto) })));
+    if (nuevoPago > saldo + 0.001) {
+      mostrar("Los pagos no pueden superar el saldo pendiente.", "error");
+      return;
+    }
+
+    setGuardandoPago(true);
+    const res = await agregarPagosVenta(ventaParaPago.id, {
+      pagos: pagosValidos.map((pago) => ({ monto: Number(pago.monto), metodo: pago.metodo })),
+      propina: propinaValida,
+    });
+    setGuardandoPago(false);
+
+    if (res.ok) {
+      mostrar(res.mensaje ?? "Pago registrado.", "success");
+      setVentaParaPago(null);
       router.refresh();
     } else {
       mostrar(res.error, "error");
@@ -154,6 +341,9 @@ export default function VentasCliente({ ventas, productos }: Props) {
         <div className="flex flex-col gap-3">
           {ventas.map((v) => {
             const pill = estadoPill(v.estado);
+            const pagado = sumaPagos(v.pagos);
+            const propinas = sumaPagos(v.propinas);
+            const saldo = Math.max(0, Number(v.total) - pagado);
             return (
               <article key={v.id} className="card">
                 <div className="flex items-start justify-between gap-2">
@@ -179,24 +369,60 @@ export default function VentasCliente({ ventas, productos }: Props) {
                   </div>
                 </div>
 
-                {v.estado === "Pendiente" && (
-                  <div className="mt-3 flex items-center justify-end gap-1">
-                    <button
-                      className="btn-ghost text-sm text-rose-600"
-                      disabled={pendiente}
-                      onClick={() => onCambiarEstado(v, "Cancelada")}
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      className="btn-secondary text-sm"
-                      disabled={pendiente}
-                      onClick={() => onCambiarEstado(v, "Entregada")}
-                    >
-                      Marcar entregada
-                    </button>
+                <div className="mt-3 grid grid-cols-2 gap-2 rounded-xl bg-surface p-2 text-center text-sm">
+                  <div>
+                    <div className="text-xs text-muted">Cobrado</div>
+                    <div className="font-semibold text-green-600">{dinero(pagado + propinas)}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted">Saldo pendiente</div>
+                    <div className="font-semibold text-amber-700">{dinero(saldo)}</div>
+                  </div>
+                </div>
+
+                {v.pagos.length > 0 && (
+                  <div className="mt-2 flex flex-col gap-1 text-xs text-muted">
+                    {v.pagos.map((pago) => (
+                      <div key={pago.id} className="flex justify-between">
+                        <span>Pago {pago.numero} · {pago.metodo}</span>
+                        <span className="font-medium text-foreground">{dinero(pago.monto)}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
+
+                {propinas > 0 && (
+                  <div className="mt-2 flex justify-between text-xs text-green-700">
+                    <span>Propinas</span>
+                    <span className="font-semibold">{dinero(propinas)}</span>
+                  </div>
+                )}
+
+                <div className="mt-3 flex flex-wrap items-center justify-end gap-1">
+                  {v.estado !== "Cancelada" && saldo > 0 && (
+                    <button className="btn-secondary text-sm" onClick={() => abrirPagos(v)}>
+                      Registrar pago
+                    </button>
+                  )}
+                  {v.estado === "Pendiente" && (
+                    <>
+                      <button
+                        className="btn-ghost text-sm text-rose-600"
+                        disabled={pendiente}
+                        onClick={() => onCambiarEstado(v, "Cancelada")}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        className="btn-secondary text-sm"
+                        disabled={pendiente}
+                        onClick={() => onCambiarEstado(v, "Entregada")}
+                      >
+                        Marcar entregada
+                      </button>
+                    </>
+                  )}
+                </div>
               </article>
             );
           })}
@@ -319,7 +545,64 @@ export default function VentasCliente({ ventas, productos }: Props) {
               Agregar producto
             </button>
           </div>
+
+          <EditorPagos pagos={pagos} numeroInicial={0} onChange={setPagos} />
+          <CampoPropina valor={propina} onChange={setPropina} />
         </form>
+      </Modal>
+
+      <Modal
+        abierto={Boolean(ventaParaPago)}
+        titulo={ventaParaPago ? `Pagos de venta #${ventaParaPago.id}` : "Registrar pago"}
+        onCerrar={() => setVentaParaPago(null)}
+        footer={
+          <div className="flex justify-end gap-2">
+            <button className="btn-ghost" onClick={() => setVentaParaPago(null)}>
+              Cancelar
+            </button>
+            <button className="btn-primary" form="formPagosVenta" disabled={guardandoPago}>
+              {guardandoPago ? "Guardando…" : "Guardar pagos"}
+            </button>
+          </div>
+        }
+      >
+        {ventaParaPago && (
+          <form id="formPagosVenta" onSubmit={onGuardarPagos} className="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-2 rounded-xl bg-surface p-3 text-sm">
+              <div>
+                <div className="text-xs text-muted">Total</div>
+                <div className="font-semibold">{dinero(ventaParaPago.total)}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted">Saldo pendiente</div>
+                <div className="font-semibold text-amber-700">
+                  {dinero(Math.max(0, ventaParaPago.total - sumaPagos(ventaParaPago.pagos)))}
+                </div>
+              </div>
+            </div>
+
+            {ventaParaPago.pagos.length > 0 && (
+              <div>
+                <div className="form-label">Pagos registrados</div>
+                <div className="flex flex-col gap-1 text-sm">
+                  {ventaParaPago.pagos.map((pago) => (
+                    <div key={pago.id} className="flex justify-between rounded-lg bg-surface px-3 py-2">
+                      <span>Pago {pago.numero} · {pago.metodo}</span>
+                      <strong>{dinero(pago.monto)}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <EditorPagos
+              pagos={pagosNuevos}
+              numeroInicial={ventaParaPago.pagos.length}
+              onChange={setPagosNuevos}
+            />
+            <CampoPropina valor={propinaNueva} onChange={setPropinaNueva} />
+          </form>
+        )}
       </Modal>
     </>
   );
