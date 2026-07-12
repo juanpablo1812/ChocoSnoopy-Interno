@@ -3,6 +3,7 @@
  */
 
 export type Estado = "Activo" | "Inactivo";
+export type TipoProducto = "Individual" | "Compuesto";
 export type EstadoVenta = "Pendiente" | "Entregada" | "Cancelada";
 export type MetodoPago = "Efectivo" | "Transferencia";
 
@@ -40,6 +41,7 @@ export interface Producto {
   id: number;
   nombre: string;
   categoria: string;
+  tipo_producto: TipoProducto;
   precio_venta: number;
   costo_produccion: number;
   ganancia: number;
@@ -47,6 +49,17 @@ export interface Producto {
   created_at: string;
   updated_at: string;
   recetas: RecetaItem[];
+  componentes: ComponenteProducto[];
+}
+
+/** Chocolate individual y cantidad que forman una caja. */
+export interface ComponenteProducto {
+  id?: number;
+  producto_id: number;
+  nombre_producto?: string;
+  cantidad: number;
+  costo_unitario?: number;
+  costo_total?: number;
 }
 
 export interface Venta {

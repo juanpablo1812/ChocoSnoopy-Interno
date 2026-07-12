@@ -511,7 +511,7 @@ export default function VentasCliente({ ventas, productos }: Props) {
                         <option value="">Selecciona un producto…</option>
                         {productos.map((prod) => (
                           <option key={prod.id} value={prod.id}>
-                            {prod.nombre}
+                            {prod.tipo_producto === "Compuesto" ? "[Caja] " : "[Chocolate] "}{prod.nombre}
                           </option>
                         ))}
                       </select>

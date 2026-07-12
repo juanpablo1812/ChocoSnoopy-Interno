@@ -1,6 +1,6 @@
 import "server-only";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import type { Producto } from "@/lib/types";
+import type { ComponenteProducto, Producto } from "@/lib/types";
 
 interface RecetaRow {
   id: number;
@@ -11,6 +11,13 @@ interface RecetaRow {
     unidad: string;
     costo_unitario: number;
   } | null;
+}
+
+interface ComponenteRow {
+  id: number;
+  producto_componente_id: number;
+  cantidad: number;
+  productos: { nombre: string; costo_produccion: number } | null;
 }
 
 /** Lista todos los productos con su receta detallada. */
@@ -24,6 +31,25 @@ export async function listarProductos(): Promise<Producto[]> {
     .order("nombre", { ascending: true });
 
   if (error) throw new Error(error.message);
+
+  const { data: componentesData, error: componentesError } = await supabase
+    .from("productos_componentes")
+    .select("id, producto_compuesto_id, producto_componente_id, cantidad, productos!productos_componentes_producto_componente_id_fkey(nombre, costo_produccion)");
+  if (componentesError) throw new Error(componentesError.message);
+
+  const componentesPorCaja = new Map<number, ComponenteProducto[]>();
+  ((componentesData ?? []) as unknown as (ComponenteRow & { producto_compuesto_id: number })[]).forEach((c) => {
+    const lista = componentesPorCaja.get(c.producto_compuesto_id) ?? [];
+    lista.push({
+      id: c.id,
+      producto_id: c.producto_componente_id,
+      nombre_producto: c.productos?.nombre ?? "",
+      cantidad: Number(c.cantidad),
+      costo_unitario: Number(c.productos?.costo_produccion ?? 0),
+      costo_total: Number(c.cantidad) * Number(c.productos?.costo_produccion ?? 0),
+    });
+    componentesPorCaja.set(c.producto_compuesto_id, lista);
+  });
 
   return (data ?? []).map((p: Record<string, unknown>) => {
     const recetasRaw = (p.recetas as RecetaRow[]) ?? [];
@@ -46,6 +72,7 @@ export async function listarProductos(): Promise<Producto[]> {
       id: p.id as number,
       nombre: p.nombre as string,
       categoria: (p.categoria as string) ?? "",
+      tipo_producto: (p.tipo_producto as Producto["tipo_producto"]) ?? "Individual",
       precio_venta: Number(p.precio_venta),
       costo_produccion: Number(p.costo_produccion),
       ganancia: Number(p.ganancia),
@@ -53,6 +80,9 @@ export async function listarProductos(): Promise<Producto[]> {
       created_at: p.created_at as string,
       updated_at: p.updated_at as string,
       recetas,
+      componentes: (componentesPorCaja.get(p.id as number) ?? []).sort((a, b) =>
+        (a.nombre_producto ?? "").localeCompare(b.nombre_producto ?? "", "es"),
+      ),
     };
   });
 }

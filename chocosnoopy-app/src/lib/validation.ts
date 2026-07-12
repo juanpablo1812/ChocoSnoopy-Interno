@@ -34,17 +34,32 @@ export const recetaItemSchema = z.object({
   cantidad: z.coerce.number().positive("Cada cantidad debe ser mayor que cero."),
 });
 
+export const componenteProductoSchema = z.object({
+  producto_id: z.coerce.number().int().positive(),
+  cantidad: z.coerce
+    .number()
+    .int("La cantidad de chocolates debe ser un número entero.")
+    .positive("La cantidad de chocolates debe ser mayor que cero."),
+});
+
 export const productoSchema = z.object({
   id: z.coerce.number().int().positive().optional().nullable(),
   nombre: textoRequerido,
   categoria: z.string().trim().default(""),
+  tipo_producto: z.enum(["Individual", "Compuesto"]).default("Individual"),
   precio_venta: z.coerce
     .number()
     .positive("El precio de venta debe ser mayor que cero."),
   estado: z.enum(["Activo", "Inactivo"]).default("Activo"),
-  recetas: z
-    .array(recetaItemSchema)
-    .min(1, "Debes agregar al menos una materia prima a la receta."),
+  recetas: z.array(recetaItemSchema).default([]),
+  componentes: z.array(componenteProductoSchema).default([]),
+}).superRefine((datos, ctx) => {
+  if (datos.tipo_producto === "Individual" && datos.recetas.length === 0) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["recetas"], message: "Debes agregar al menos una materia prima a la receta." });
+  }
+  if (datos.tipo_producto === "Compuesto" && datos.componentes.length === 0) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["componentes"], message: "Una caja debe incluir al menos un chocolate individual." });
+  }
 });
 export type ProductoInput = z.infer<typeof productoSchema>;
 

@@ -24,7 +24,7 @@ Stack:
 | Módulo | Qué hace |
 |--------|----------|
 | **Dashboard** (`/`) | Resumen de ventas hoy / semana / mes y alertas de stock bajo |
-| **Productos** (`/productos`) | Alta/edición con receta; el costo de producción y la ganancia se calculan solos |
+| **Productos** (`/productos`) | Chocolates individuales con receta y cajas compuestas; el costo y la ganancia se calculan solos |
 | **Inventario** (`/inventario`) | Materias primas: stock, costo unitario, mínimos, ajustes y alertas |
 | **Ventas** (`/ventas`) | Registrar ventas que descuentan inventario según la receta; cancelar reintegra el stock |
 
@@ -50,6 +50,8 @@ npm install
 2. Abre el **SQL Editor** del proyecto y ejecuta, **en orden**, el contenido de:
    - [`supabase/migrations/0001_schema.sql`](supabase/migrations/0001_schema.sql) — crea las tablas.
    - [`supabase/migrations/0002_functions.sql`](supabase/migrations/0002_functions.sql) — crea las funciones de negocio.
+   - Las migraciones posteriores de la misma carpeta, incluido
+     [`supabase/migrations/20260712015507_productos_compuestos.sql`](supabase/migrations/20260712015507_productos_compuestos.sql), en orden de nombre. Esta última añade chocolates individuales y cajas compuestas.
 
    (Alternativa: si usas la [CLI de Supabase](https://supabase.com/docs/guides/local-development),
    estas migraciones ya están en la carpeta `supabase/migrations` y puedes usar `supabase db push`.)

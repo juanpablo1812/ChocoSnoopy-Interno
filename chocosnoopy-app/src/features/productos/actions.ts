@@ -25,11 +25,16 @@ export async function guardarProducto(input: unknown): Promise<Resultado> {
         id: datos.id ?? null,
         nombre: datos.nombre,
         categoria: datos.categoria,
+        tipo_producto: datos.tipo_producto,
         precio_venta: datos.precio_venta,
         estado: datos.estado,
         recetas: datos.recetas.map((r) => ({
           materia_prima_id: r.materia_prima_id,
           cantidad: r.cantidad,
+        })),
+        componentes: datos.componentes.map((c) => ({
+          producto_id: c.producto_id,
+          cantidad: c.cantidad,
         })),
       },
     });
@@ -75,7 +80,7 @@ export async function duplicarProducto(id: number): Promise<Resultado> {
     const supabase = crearClienteServidor();
     const { data, error } = await supabase
       .from("productos")
-      .select("nombre, categoria, precio_venta, recetas(materia_prima_id, cantidad)")
+      .select("nombre, categoria, tipo_producto, precio_venta, recetas(materia_prima_id, cantidad)")
       .eq("id", id)
       .single();
     if (error) throw new Error(error.message);
@@ -92,16 +97,26 @@ export async function duplicarProducto(id: number): Promise<Resultado> {
     }
 
     const recetas = (data.recetas as { materia_prima_id: number; cantidad: number }[]) ?? [];
+    const { data: componentes, error: errComponentes } = await supabase
+      .from("productos_componentes")
+      .select("producto_componente_id, cantidad")
+      .eq("producto_compuesto_id", id);
+    if (errComponentes) throw new Error(errComponentes.message);
     const { error: errRpc } = await supabase.rpc("guardar_producto", {
       payload: {
         id: null,
         nombre: candidato,
         categoria: data.categoria ?? "",
+        tipo_producto: data.tipo_producto ?? "Individual",
         precio_venta: data.precio_venta,
         estado: "Activo",
         recetas: recetas.map((r) => ({
           materia_prima_id: r.materia_prima_id,
           cantidad: r.cantidad,
+        })),
+        componentes: (componentes ?? []).map((c) => ({
+          producto_id: c.producto_componente_id,
+          cantidad: c.cantidad,
         })),
       },
     });
