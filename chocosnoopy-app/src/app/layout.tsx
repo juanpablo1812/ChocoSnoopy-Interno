@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { ToastProvider } from "@/components/Toast";
+import { Analytics } from '@vercel/analytics/next';
 
 export const metadata: Metadata = {
   title: "Chocosnoopy",
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
           <Navbar />
         </ToastProvider>
+        <Analytics />
       </body>
     </html>
   );
