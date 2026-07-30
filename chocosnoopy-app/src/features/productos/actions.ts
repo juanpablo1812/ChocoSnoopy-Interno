@@ -26,6 +26,7 @@ export async function guardarProducto(input: unknown): Promise<Resultado> {
         nombre: datos.nombre,
         categoria: datos.categoria,
         tipo_producto: datos.tipo_producto,
+        tipo_chocolate: datos.tipo_chocolate,
         precio_venta: datos.precio_venta,
         estado: datos.estado,
         recetas: datos.recetas.map((r) => ({
@@ -33,7 +34,7 @@ export async function guardarProducto(input: unknown): Promise<Resultado> {
           cantidad: r.cantidad,
         })),
         componentes: datos.componentes.map((c) => ({
-          producto_id: c.producto_id,
+          tipo_chocolate: c.tipo_chocolate,
           cantidad: c.cantidad,
         })),
       },
@@ -80,7 +81,7 @@ export async function duplicarProducto(id: number): Promise<Resultado> {
     const supabase = crearClienteServidor();
     const { data, error } = await supabase
       .from("productos")
-      .select("nombre, categoria, tipo_producto, precio_venta, recetas(materia_prima_id, cantidad)")
+      .select("nombre, categoria, tipo_producto, tipo_chocolate, precio_venta, recetas(materia_prima_id, cantidad)")
       .eq("id", id)
       .single();
     if (error) throw new Error(error.message);
@@ -98,8 +99,8 @@ export async function duplicarProducto(id: number): Promise<Resultado> {
 
     const recetas = (data.recetas as { materia_prima_id: number; cantidad: number }[]) ?? [];
     const { data: componentes, error: errComponentes } = await supabase
-      .from("productos_componentes")
-      .select("producto_componente_id, cantidad")
+      .from("productos_componentes_tipos")
+      .select("tipo_chocolate, cantidad")
       .eq("producto_compuesto_id", id);
     if (errComponentes) throw new Error(errComponentes.message);
     const { error: errRpc } = await supabase.rpc("guardar_producto", {
@@ -108,6 +109,7 @@ export async function duplicarProducto(id: number): Promise<Resultado> {
         nombre: candidato,
         categoria: data.categoria ?? "",
         tipo_producto: data.tipo_producto ?? "Individual",
+        tipo_chocolate: data.tipo_chocolate ?? "",
         precio_venta: data.precio_venta,
         estado: "Activo",
         recetas: recetas.map((r) => ({
@@ -115,7 +117,7 @@ export async function duplicarProducto(id: number): Promise<Resultado> {
           cantidad: r.cantidad,
         })),
         componentes: (componentes ?? []).map((c) => ({
-          producto_id: c.producto_componente_id,
+          tipo_chocolate: c.tipo_chocolate,
           cantidad: c.cantidad,
         })),
       },

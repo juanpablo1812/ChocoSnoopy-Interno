@@ -35,7 +35,7 @@ export const recetaItemSchema = z.object({
 });
 
 export const componenteProductoSchema = z.object({
-  producto_id: z.coerce.number().int().positive(),
+  tipo_chocolate: textoRequerido,
   cantidad: z.coerce
     .number()
     .int("La cantidad de chocolates debe ser un número entero.")
@@ -47,6 +47,7 @@ export const productoSchema = z.object({
   nombre: textoRequerido,
   categoria: z.string().trim().default(""),
   tipo_producto: z.enum(["Individual", "Compuesto"]).default("Individual"),
+  tipo_chocolate: z.string().trim().default(""),
   precio_venta: z.coerce
     .number()
     .positive("El precio de venta debe ser mayor que cero."),
@@ -56,6 +57,9 @@ export const productoSchema = z.object({
 }).superRefine((datos, ctx) => {
   if (datos.tipo_producto === "Individual" && datos.recetas.length === 0) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["recetas"], message: "Debes agregar al menos una materia prima a la receta." });
+  }
+  if (datos.tipo_producto === "Individual" && datos.tipo_chocolate === "") {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["tipo_chocolate"], message: "Indica el tipo del chocolate." });
   }
   if (datos.tipo_producto === "Compuesto" && datos.componentes.length === 0) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["componentes"], message: "Una caja debe incluir al menos un chocolate individual." });
@@ -69,6 +73,10 @@ export const ventaProductoSchema = z.object({
     .number()
     .int("La cantidad debe ser un número entero.")
     .positive("La cantidad debe ser mayor que cero."),
+  selecciones: z.array(z.object({
+    producto_id: z.coerce.number().int().positive(),
+    cantidad: z.coerce.number().int().positive(),
+  })).default([]),
 });
 
 export const metodoPagoSchema = z.enum(["Efectivo", "Transferencia"]);
