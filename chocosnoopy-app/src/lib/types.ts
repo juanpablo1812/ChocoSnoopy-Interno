@@ -42,6 +42,7 @@ export interface Producto {
   nombre: string;
   categoria: string;
   tipo_producto: TipoProducto;
+  tipo_chocolate: string;
   precio_venta: number;
   costo_produccion: number;
   ganancia: number;
@@ -55,8 +56,8 @@ export interface Producto {
 /** Chocolate individual y cantidad que forman una caja. */
 export interface ComponenteProducto {
   id?: number;
-  producto_id: number;
-  nombre_producto?: string;
+  tipo_chocolate: string;
+  tipo_normalizado: string;
   cantidad: number;
   costo_unitario?: number;
   costo_total?: number;

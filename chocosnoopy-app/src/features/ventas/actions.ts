@@ -28,6 +28,10 @@ export async function crearVenta(input: unknown): Promise<Resultado> {
         productos: datos.productos.map((p) => ({
           producto_id: p.producto_id,
           cantidad: p.cantidad,
+          selecciones: p.selecciones.map((seleccion) => ({
+            producto_id: seleccion.producto_id,
+            cantidad: seleccion.cantidad,
+          })),
         })),
         pagos: datos.pagos,
         propina: datos.propina,

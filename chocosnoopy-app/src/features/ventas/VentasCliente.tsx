@@ -19,6 +19,7 @@ interface Props {
 interface Linea {
   producto_id: string;
   cantidad: string;
+  selecciones: Record<string, string[]>;
 }
 
 interface PagoFormulario {
@@ -155,6 +156,18 @@ export default function VentasCliente({ ventas, productos }: Props) {
     return m;
   }, [productos]);
 
+  const chocolatesPorTipo = useMemo(() => {
+    const mapa = new Map<string, ProductoVenta[]>();
+    productos
+      .filter((producto) => producto.tipo_producto === "Individual")
+      .forEach((producto) => {
+        const lista = mapa.get(producto.tipo_normalizado) ?? [];
+        lista.push(producto);
+        mapa.set(producto.tipo_normalizado, lista);
+      });
+    return mapa;
+  }, [productos]);
+
   const total = useMemo(() => {
     return lineas.reduce((t, l) => {
       const p = mapaProductos.get(Number(l.producto_id));
@@ -168,23 +181,51 @@ export default function VentasCliente({ ventas, productos }: Props) {
     setWhatsapp("");
     setFechaEntrega(hoyISO());
     setEstado("Pendiente");
-    setLineas([{ producto_id: "", cantidad: "1" }]);
+    setLineas([{ producto_id: "", cantidad: "1", selecciones: {} }]);
     setPagos([]);
     setPropina("");
     setModalAbierto(true);
   }
 
   function agregarLinea() {
-    setLineas([...lineas, { producto_id: "", cantidad: "1" }]);
+    setLineas([...lineas, { producto_id: "", cantidad: "1", selecciones: {} }]);
   }
 
   function quitarLinea(indice: number) {
     const nuevas = lineas.filter((_, i) => i !== indice);
-    setLineas(nuevas.length > 0 ? nuevas : [{ producto_id: "", cantidad: "1" }]);
+    setLineas(
+      nuevas.length > 0
+        ? nuevas
+        : [{ producto_id: "", cantidad: "1", selecciones: {} }],
+    );
   }
 
-  function editarLinea(indice: number, campo: keyof Linea, valor: string) {
-    setLineas(lineas.map((l, i) => (i === indice ? { ...l, [campo]: valor } : l)));
+  function editarLinea(indice: number, campo: "producto_id" | "cantidad", valor: string) {
+    setLineas(
+      lineas.map((linea, i) =>
+        i === indice ? { ...linea, [campo]: valor, selecciones: {} } : linea,
+      ),
+    );
+  }
+
+  function editarSeleccion(
+    indiceLinea: number,
+    tipoNormalizado: string,
+    indiceCupo: number,
+    productoId: string,
+  ) {
+    setLineas(
+      lineas.map((linea, i) => {
+        if (i !== indiceLinea) return linea;
+        const actuales = linea.selecciones[tipoNormalizado] ?? [];
+        const nuevas = [...actuales];
+        nuevas[indiceCupo] = productoId;
+        return {
+          ...linea,
+          selecciones: { ...linea.selecciones, [tipoNormalizado]: nuevas },
+        };
+      }),
+    );
   }
 
   function prepararPagos(pagosFormulario: PagoFormulario[]): PagoFormulario[] | null {
@@ -221,6 +262,22 @@ export default function VentasCliente({ ventas, productos }: Props) {
       return;
     }
 
+    for (const linea of seleccionados) {
+      const producto = mapaProductos.get(Number(linea.producto_id));
+      if (!producto || producto.tipo_producto !== "Compuesto") continue;
+      for (const componente of producto.componentes) {
+        const requeridos = componente.cantidad * Number(linea.cantidad);
+        const elegidos = (linea.selecciones[componente.tipo_normalizado] ?? []).slice(0, requeridos);
+        if (elegidos.length !== requeridos || elegidos.some((id) => !id)) {
+          mostrar(
+            `Completa los ${requeridos} chocolates de tipo ${componente.tipo_chocolate} para ${producto.nombre}.`,
+            "error",
+          );
+          return;
+        }
+      }
+    }
+
     const pagosValidos = prepararPagos(pagos);
     if (!pagosValidos) return;
     const propinaValida = prepararPropina(propina);
@@ -237,10 +294,29 @@ export default function VentasCliente({ ventas, productos }: Props) {
       whatsapp,
       fecha_entrega: fechaEntrega,
       estado,
-      productos: seleccionados.map((l) => ({
-        producto_id: Number(l.producto_id),
-        cantidad: Number(l.cantidad),
-      })),
+      productos: seleccionados.map((linea) => {
+        const producto = mapaProductos.get(Number(linea.producto_id));
+        const cantidades = new Map<number, number>();
+        if (producto?.tipo_producto === "Compuesto") {
+          producto.componentes.forEach((componente) => {
+            const requeridos = componente.cantidad * Number(linea.cantidad);
+            (linea.selecciones[componente.tipo_normalizado] ?? [])
+              .slice(0, requeridos)
+              .forEach((id) => {
+                const productoId = Number(id);
+                cantidades.set(productoId, (cantidades.get(productoId) ?? 0) + 1);
+              });
+          });
+        }
+        return {
+          producto_id: Number(linea.producto_id),
+          cantidad: Number(linea.cantidad),
+          selecciones: [...cantidades].map(([producto_id, cantidad]) => ({
+            producto_id,
+            cantidad,
+          })),
+        };
+      }),
       pagos: pagosValidos.map((pago) => ({
         monto: Number(pago.monto),
         metodo: pago.metodo,
@@ -536,6 +612,60 @@ export default function VentasCliente({ ventas, productos }: Props) {
                       <span>{p ? dinero(p.precio_venta) + " c/u" : "—"}</span>
                       <span>Subtotal: {dinero(subtotal)}</span>
                     </div>
+                    {p?.tipo_producto === "Compuesto" && (
+                      <div className="mt-3 flex flex-col gap-3 border-t border-black/10 pt-3">
+                        <p className="text-xs font-semibold">
+                          Elige los chocolates concretos de la caja
+                        </p>
+                        {p.componentes.map((componente) => {
+                          const cupos =
+                            componente.cantidad *
+                            Math.max(0, Math.trunc(Number(l.cantidad || 0)));
+                          const opciones =
+                            chocolatesPorTipo.get(componente.tipo_normalizado) ?? [];
+                          const elegidos =
+                            l.selecciones[componente.tipo_normalizado] ?? [];
+                          return (
+                            <div key={componente.tipo_normalizado}>
+                              <div className="mb-1 text-xs text-muted">
+                                {componente.tipo_chocolate} · {cupos}{" "}
+                                {cupos === 1 ? "chocolate" : "chocolates"}
+                              </div>
+                              <div className="grid gap-2 sm:grid-cols-2">
+                                {Array.from({ length: cupos }, (_, indiceCupo) => (
+                                  <select
+                                    key={indiceCupo}
+                                    className="form-select min-w-0"
+                                    aria-label={`${componente.tipo_chocolate} ${indiceCupo + 1}`}
+                                    value={elegidos[indiceCupo] ?? ""}
+                                    onChange={(e) =>
+                                      editarSeleccion(
+                                        i,
+                                        componente.tipo_normalizado,
+                                        indiceCupo,
+                                        e.target.value,
+                                      )
+                                    }
+                                  >
+                                    <option value="">
+                                      {componente.tipo_chocolate} #{indiceCupo + 1}…
+                                    </option>
+                                    {opciones.map((opcion) => (
+                                      <option key={opcion.id} value={opcion.id}>
+                                        {opcion.nombre}
+                                      </option>
+                                    ))}
+                                  </select>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <p className="text-xs text-muted">
+                          En cada lista solo aparecen chocolates del tipo solicitado.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 );
               })}
