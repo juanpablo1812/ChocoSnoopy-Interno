@@ -36,6 +36,8 @@ interface FormProducto {
   estado: "Activo" | "Inactivo";
 }
 
+type FiltroProductos = "Todos" | TipoProducto;
+
 const FORM_VACIO: FormProducto = {
   id: null,
   nombre: "",
@@ -59,6 +61,7 @@ export default function ProductosCliente({ productos, materiasPrimas }: Props) {
   const [filas, setFilas] = useState<FilaReceta[]>([]);
   const [componentes, setComponentes] = useState<FilaComponente[]>([]);
   const [guardando, setGuardando] = useState(false);
+  const [filtro, setFiltro] = useState<FiltroProductos>("Todos");
 
   const mapaMaterias = useMemo(
     () => new Map(materiasPrimas.map((mp) => [mp.id, mp])),
@@ -68,6 +71,14 @@ export default function ProductosCliente({ productos, materiasPrimas }: Props) {
   const chocolates = useMemo(
     () => productos.filter((p) => p.tipo_producto === "Individual"),
     [productos],
+  );
+
+  const productosFiltrados = useMemo(
+    () =>
+      filtro === "Todos"
+        ? productos
+        : productos.filter((producto) => producto.tipo_producto === filtro),
+    [filtro, productos],
   );
 
   const tiposDisponibles = useMemo(() => {
@@ -282,15 +293,48 @@ export default function ProductosCliente({ productos, materiasPrimas }: Props) {
         </div>
       )}
 
+      {productos.length > 0 && (
+        <div
+          className="mb-4 flex gap-2 overflow-x-auto pb-1"
+          role="group"
+          aria-label="Filtrar productos por tipo"
+        >
+          {([
+            ["Todos", `Todos (${productos.length})`],
+            ["Individual", `Chocolates (${chocolates.length})`],
+            [
+              "Compuesto",
+              `Cajas (${productos.length - chocolates.length})`,
+            ],
+          ] as const).map(([valor, etiqueta]) => (
+            <button
+              key={valor}
+              type="button"
+              className={`shrink-0 ${filtro === valor ? "btn-primary" : "btn-secondary"}`}
+              aria-pressed={filtro === valor}
+              onClick={() => setFiltro(valor)}
+            >
+              {etiqueta}
+            </button>
+          ))}
+        </div>
+      )}
+
       {productos.length === 0 ? (
         <EmptyState
           icono="inventory_2"
           titulo="No hay productos"
           descripcion="Crea primero un chocolate individual y luego las cajas de ejemplo."
         />
+      ) : productosFiltrados.length === 0 ? (
+        <EmptyState
+          icono={filtro === "Compuesto" ? "inventory_2" : "cookie"}
+          titulo={filtro === "Compuesto" ? "No hay cajas" : "No hay chocolates individuales"}
+          descripcion="Selecciona Todos para ver el resto de tus productos."
+        />
       ) : (
         <div className="flex flex-col gap-3">
-          {productos.map((producto) => (
+          {productosFiltrados.map((producto) => (
             <article key={producto.id} className="card">
               <div className="flex items-start justify-between gap-2">
                 <div>
