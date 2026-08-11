@@ -9,7 +9,12 @@ import { useToast } from "@/components/Toast";
 import { dinero, fechaCorta, hoyISO } from "@/lib/format";
 import type { EstadoVenta, MetodoPago, Venta } from "@/lib/types";
 import type { ProductoVenta } from "./data";
-import { agregarPagosVenta, cambiarEstadoVenta, crearVenta } from "./actions";
+import {
+  agregarPagosVenta,
+  cambiarEstadoVenta,
+  crearVenta,
+  eliminarVentaCancelada,
+} from "./actions";
 
 interface Props {
   ventas: Venta[];
@@ -149,6 +154,7 @@ export default function VentasCliente({ ventas, productos }: Props) {
   const [pagosNuevos, setPagosNuevos] = useState<PagoFormulario[]>([]);
   const [propinaNueva, setPropinaNueva] = useState("");
   const [guardandoPago, setGuardandoPago] = useState(false);
+  const [eliminandoId, setEliminandoId] = useState<number | null>(null);
 
   const mapaProductos = useMemo(() => {
     const m = new Map<number, ProductoVenta>();
@@ -388,6 +394,28 @@ export default function VentasCliente({ ventas, productos }: Props) {
     });
   }
 
+  async function onEliminarVenta(v: Venta) {
+    const confirmado = window.confirm(
+      `¿Eliminar definitivamente la venta #${v.id}?\n\nSe borrarán también sus pagos, propinas y detalles. Esta acción no se puede deshacer.`,
+    );
+    if (!confirmado || eliminandoId !== null) return;
+
+    setEliminandoId(v.id);
+    try {
+      const res = await eliminarVentaCancelada(v.id);
+      if (res.ok) {
+        mostrar(res.mensaje ?? "Venta eliminada.", "success");
+        router.refresh();
+      } else {
+        mostrar(res.error, "error");
+      }
+    } catch {
+      mostrar("No se pudo eliminar la venta. Intenta de nuevo.", "error");
+    } finally {
+      setEliminandoId(null);
+    }
+  }
+
   return (
     <>
       <PageHeader
@@ -497,6 +525,16 @@ export default function VentasCliente({ ventas, productos }: Props) {
                         Marcar entregada
                       </button>
                     </>
+                  )}
+                  {v.estado === "Cancelada" && (
+                    <button
+                      className="btn-ghost text-sm text-rose-700"
+                      disabled={eliminandoId !== null}
+                      onClick={() => onEliminarVenta(v)}
+                    >
+                      <span className="material-symbols-outlined text-lg">delete</span>
+                      {eliminandoId === v.id ? "Eliminando…" : "Eliminar"}
+                    </button>
                   )}
                 </div>
               </article>

@@ -93,3 +93,29 @@ export async function cambiarEstadoVenta(id: number, estado: EstadoVenta): Promi
     return { ok: false, error: mensajeError(e) };
   }
 }
+
+/**
+ * Elimina definitivamente una venta cancelada y todos sus registros asociados.
+ * La función Postgres rechaza ventas que todavía no hayan sido canceladas.
+ */
+export async function eliminarVentaCancelada(id: number): Promise<Resultado> {
+  try {
+    if (!Number.isInteger(id) || id <= 0) {
+      return { ok: false, error: "La venta no es válida." };
+    }
+
+    const supabase = crearClienteServidor();
+    const { error } = await supabase.rpc("eliminar_venta_cancelada", {
+      p_id: id,
+    });
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/ventas");
+    revalidatePath("/inventario");
+    revalidatePath("/contabilidad");
+    revalidatePath("/");
+    return { ok: true, mensaje: "Venta eliminada definitivamente." };
+  } catch (e) {
+    return { ok: false, error: mensajeError(e) };
+  }
+}

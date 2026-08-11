@@ -17,12 +17,16 @@ export function cantidad(valor: number | string | null | undefined): string {
 /** Fecha corta legible: 11 jul 2026 */
 export function fechaCorta(valor: string | Date | null | undefined): string {
   if (!valor) return "-";
-  const fecha = valor instanceof Date ? valor : new Date(valor);
+  const esSoloFecha = typeof valor === "string" && /^\d{4}-\d{2}-\d{2}$/.test(valor);
+  const fecha = valor instanceof Date
+    ? valor
+    : new Date(esSoloFecha ? `${valor}T00:00:00Z` : valor);
   if (Number.isNaN(fecha.getTime())) return "-";
   return fecha.toLocaleDateString("es-CO", {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    ...(esSoloFecha ? { timeZone: "UTC" } : {}),
   });
 }
 
