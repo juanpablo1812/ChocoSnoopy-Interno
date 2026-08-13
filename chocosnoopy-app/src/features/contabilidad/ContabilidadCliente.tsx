@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import { dinero } from "@/lib/format";
-import type { ComparacionContable, DatosContabilidad, PeriodoContable, PuntoEvolucion } from "./data";
+import type { ComparacionContable, DatosContabilidad, PeriodoContable, ProductoVendido, PuntoEvolucion } from "./data";
 
 const PERIODOS: { valor: Exclude<PeriodoContable, "personalizado">; etiqueta: string }[] = [
   { valor: "hoy", etiqueta: "Hoy" },
@@ -73,17 +73,47 @@ function Grafico({ titulo, puntos, campo, moneda = false }: {
   </article>;
 }
 
+function ProductosVendidos({ productos }: { productos: ProductoVendido[] }) {
+  const totalUnidades = productos.reduce((total, producto) => total + producto.unidades, 0);
+
+  return <section className="mt-5">
+    <div className="mb-2 flex items-end justify-between gap-3">
+      <div><h2 className="text-lg font-semibold">Productos vendidos</h2><p className="text-xs text-muted">Detalle de las ventas creadas durante el período.</p></div>
+      {productos.length > 0 && <span className="shrink-0 text-xs font-semibold text-accent">{totalUnidades} {totalUnidades === 1 ? "unidad" : "unidades"}</span>}
+    </div>
+    {productos.length === 0
+      ? <div className="card text-center"><span className="material-symbols-outlined text-3xl text-primary-dark">inventory_2</span><p className="mt-1 text-sm font-medium">No se vendieron productos</p><p className="mt-1 text-xs text-muted">No hay ventas activas registradas en este período.</p></div>
+      : <div className="card divide-y divide-primary-dark/20 !p-0">
+        {productos.map((producto) => <article key={producto.producto_id} className="p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0"><h3 className="truncate text-sm font-semibold text-ink">{producto.nombre}</h3><p className="mt-0.5 text-xs text-muted">{producto.ventas} {producto.ventas === 1 ? "venta" : "ventas"}</p></div>
+            <strong className="shrink-0 text-sm text-accent">{producto.unidades} {producto.unidades === 1 ? "unidad" : "unidades"}</strong>
+          </div>
+          <div className="mt-2 flex items-center justify-between text-xs"><span className="text-muted">Valor vendido</span><strong>{dinero(producto.valor_vendido)}</strong></div>
+        </article>)}
+      </div>}
+  </section>;
+}
+
 export default function ContabilidadCliente({ datos }: { datos: DatosContabilidad }) {
   const router = useRouter();
-  const [mostrarRango, setMostrarRango] = useState(datos.periodo === "personalizado");
+  const [panelAbierto, setPanelAbierto] = useState<"dia" | "rango" | null>(
+    datos.periodo === "dia" ? "dia" : datos.periodo === "personalizado" ? "rango" : null,
+  );
   const [desde, setDesde] = useState(datos.desde);
   const [hasta, setHasta] = useState(datos.hasta);
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Bogota" });
-  const rangoSeleccionado = mostrarRango || datos.periodo === "personalizado";
+  const [fecha, setFecha] = useState(datos.periodo === "dia" ? datos.desde : hoy);
+  const seleccionActiva = panelAbierto ?? (datos.periodo === "dia" ? "dia" : datos.periodo === "personalizado" ? "rango" : null);
 
   function cambiarPeriodo(periodo: string) {
-    setMostrarRango(false);
+    setPanelAbierto(null);
     router.push(`/contabilidad?periodo=${periodo}`);
+  }
+
+  function aplicarDia(e: React.FormEvent) {
+    e.preventDefault();
+    if (fecha && fecha <= hoy) router.push(`/contabilidad?periodo=dia&fecha=${fecha}`);
   }
 
   function aplicarRango(e: React.FormEvent) {
@@ -96,10 +126,16 @@ export default function ContabilidadCliente({ datos }: { datos: DatosContabilida
 
     <section className="mb-4">
       <div className="flex rounded-xl2 bg-primary-dark/35 p-1">
-        {PERIODOS.map((item) => <button key={item.valor} onClick={() => cambiarPeriodo(item.valor)} className={`flex-1 rounded-xl px-2 py-2 text-xs font-semibold transition ${!rangoSeleccionado && datos.periodo === item.valor ? "bg-secondary text-accent shadow-sm" : "text-ink/70"}`}>{item.etiqueta}</button>)}
-        <button onClick={() => setMostrarRango((actual) => !actual)} className={`flex-1 rounded-xl px-2 py-2 text-xs font-semibold transition ${rangoSeleccionado ? "bg-secondary text-accent shadow-sm" : "text-ink/70"}`}>Rango</button>
+        {PERIODOS.map((item) => <button key={item.valor} onClick={() => cambiarPeriodo(item.valor)} className={`flex-1 rounded-xl px-2 py-2 text-xs font-semibold transition ${seleccionActiva === null && datos.periodo === item.valor ? "bg-secondary text-accent shadow-sm" : "text-ink/70"}`}>{item.etiqueta}</button>)}
+        <button onClick={() => setPanelAbierto((actual) => actual === "dia" ? null : "dia")} className={`flex-1 rounded-xl px-2 py-2 text-xs font-semibold transition ${seleccionActiva === "dia" ? "bg-secondary text-accent shadow-sm" : "text-ink/70"}`}>Día</button>
+        <button onClick={() => setPanelAbierto((actual) => actual === "rango" ? null : "rango")} className={`flex-1 rounded-xl px-2 py-2 text-xs font-semibold transition ${seleccionActiva === "rango" ? "bg-secondary text-accent shadow-sm" : "text-ink/70"}`}>Rango</button>
       </div>
-      {mostrarRango && <form onSubmit={aplicarRango} className="mt-3 rounded-xl2 bg-surface p-3 shadow-card">
+      {panelAbierto === "dia" && <form onSubmit={aplicarDia} className="mt-3 rounded-xl2 bg-surface p-3 shadow-card">
+        <p className="mb-2 text-xs text-muted">Consulta las ventas y el dinero recibido en una fecha específica.</p>
+        <label className="text-xs font-medium">Fecha<input required max={hoy} value={fecha} onChange={(e) => setFecha(e.target.value)} type="date" className="form-control mt-1" /></label>
+        <button className="btn-primary mt-3 w-full text-sm">Ver día</button>
+      </form>}
+      {panelAbierto === "rango" && <form onSubmit={aplicarRango} className="mt-3 rounded-xl2 bg-surface p-3 shadow-card">
         <p className="mb-2 text-xs text-muted">Compara un período de hasta 366 días con el período inmediatamente anterior.</p>
         <div className="grid grid-cols-2 gap-2"><label className="text-xs font-medium">Desde<input required max={hoy} value={desde} onChange={(e) => setDesde(e.target.value)} type="date" className="form-control mt-1" /></label><label className="text-xs font-medium">Hasta<input required min={desde} max={hoy} value={hasta} onChange={(e) => setHasta(e.target.value)} type="date" className="form-control mt-1" /></label></div>
         <button className="btn-primary mt-3 w-full text-sm">Ver reporte</button>
@@ -119,6 +155,8 @@ export default function ContabilidadCliente({ datos }: { datos: DatosContabilida
     <section className="mt-5"><div className="mb-2"><h2 className="text-lg font-semibold">Ingresos, costos y utilidad</h2><p className="text-xs text-muted">Desglose del dinero efectivamente recibido.</p></div>
       <div className="card divide-y divide-primary-dark/20 !p-0"><div className="flex items-center justify-between p-3 text-sm"><span>Ingresos por ventas</span><strong>{dinero(datos.resumen.ingresos_ventas)}</strong></div><div className="flex items-center justify-between p-3 text-sm"><span className="text-success">Propinas</span><strong className="text-success">{dinero(datos.resumen.propinas)}</strong></div><div className="flex items-center justify-between p-3 text-sm"><span className="text-danger">Costos estimados</span><strong className="text-danger">−{dinero(datos.resumen.costos)}</strong></div><div className="flex items-center justify-between bg-secondary p-3 text-sm"><strong>Utilidad estimada</strong><strong className="text-success">{dinero(datos.resumen.utilidad)}</strong></div></div>
     </section>
+
+    <ProductosVendidos productos={datos.productos_vendidos} />
 
     <section className="mt-5 flex flex-col gap-3"><Grafico titulo="Ventas durante el periodo" puntos={datos.evolucion} campo="ventas" /><Grafico titulo="Dinero recogido durante el periodo" puntos={datos.evolucion} campo="dinero" moneda /></section>
     <p className="mt-4 text-center text-[11px] leading-relaxed text-muted">Las ventas se cuentan por su fecha de creaci\u00f3n; el dinero, costos y utilidad se registran por la fecha en que se recibi\u00f3 cada pago.</p>

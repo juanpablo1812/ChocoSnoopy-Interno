@@ -2,7 +2,7 @@ import "server-only";
 import { unstable_noStore as noStore } from "next/cache";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
-export type PeriodoContable = "hoy" | "semana" | "mes" | "personalizado";
+export type PeriodoContable = "hoy" | "dia" | "semana" | "mes" | "personalizado";
 
 export interface ResumenContable {
   ventas: number;
@@ -24,6 +24,14 @@ export interface PuntoEvolucion {
   dinero: number;
 }
 
+export interface ProductoVendido {
+  producto_id: number;
+  nombre: string;
+  unidades: number;
+  ventas: number;
+  valor_vendido: number;
+}
+
 export interface DatosContabilidad {
   periodo: PeriodoContable;
   desde: string;
@@ -34,11 +42,20 @@ export interface DatosContabilidad {
     dinero: ComparacionContable;
   };
   evolucion: PuntoEvolucion[];
+  productos_vendidos: ProductoVendido[];
 }
 
 interface VentaFila {
   id: number;
   fecha_creacion: string;
+  detalle_ventas?: DetalleVentaFila[];
+}
+
+interface DetalleVentaFila {
+  producto_id: number;
+  nombre_producto: string;
+  cantidad: number;
+  subtotal: number;
 }
 
 interface MovimientoFila {
@@ -83,11 +100,16 @@ function diasEntre(desde: string, hasta: string): number {
 
 function rangoActual(
   periodoSolicitado: string | undefined,
+  fechaSolicitada: string | undefined,
   desdeSolicitado: string | undefined,
   hastaSolicitado: string | undefined,
 ): { periodo: PeriodoContable; desde: string; hasta: string } {
   const hoy = fechaBogota();
   if (periodoSolicitado === "hoy") return { periodo: "hoy", desde: hoy, hasta: hoy };
+
+  if (periodoSolicitado === "dia" && esFechaISO(fechaSolicitada) && fechaSolicitada <= hoy) {
+    return { periodo: "dia", desde: fechaSolicitada, hasta: fechaSolicitada };
+  }
 
   if (periodoSolicitado === "semana") {
     const [y, m, d] = hoy.split("-").map(Number);
@@ -120,11 +142,12 @@ function etiquetaDia(fecha: string): string {
 
 export async function obtenerContabilidad(parametros: {
   periodo?: string;
+  fecha?: string;
   desde?: string;
   hasta?: string;
 }): Promise<DatosContabilidad> {
   noStore();
-  const rango = rangoActual(parametros.periodo, parametros.desde, parametros.hasta);
+  const rango = rangoActual(parametros.periodo, parametros.fecha, parametros.desde, parametros.hasta);
   const duracion = diasEntre(rango.desde, rango.hasta);
   const anteriorDesde = sumarDias(rango.desde, -duracion);
   const anteriorHasta = sumarDias(rango.desde, -1);
@@ -133,7 +156,7 @@ export async function obtenerContabilidad(parametros: {
   const supabase = crearClienteServidor();
 
   const [ventasActuales, ventasAnteriores, pagos, propinas] = await Promise.all([
-    supabase.from("ventas").select("id, fecha_creacion").neq("estado", "Cancelada")
+    supabase.from("ventas").select("id, fecha_creacion, detalle_ventas(producto_id, nombre_producto, cantidad, subtotal)").neq("estado", "Cancelada")
       .gte("fecha_creacion", inicioUTC(rango.desde)).lt("fecha_creacion", inicioUTC(finExclusivo)),
     supabase.from("ventas").select("id").neq("estado", "Cancelada")
       .gte("fecha_creacion", inicioUTC(anteriorDesde)).lt("fecha_creacion", inicioUTC(anteriorFinExclusivo)),
@@ -148,10 +171,30 @@ export async function obtenerContabilidad(parametros: {
   }
 
   const ventasPorDia = new Map<string, number>();
+  const productosPorId = new Map<number, ProductoVendido & { ventasIds: Set<number> }>();
   for (const venta of (ventasActuales.data ?? []) as VentaFila[]) {
     const dia = fechaBogota(new Date(venta.fecha_creacion));
     ventasPorDia.set(dia, (ventasPorDia.get(dia) ?? 0) + 1);
+    for (const detalle of venta.detalle_ventas ?? []) {
+      const productoId = Number(detalle.producto_id);
+      const acumulado = productosPorId.get(productoId) ?? {
+        producto_id: productoId,
+        nombre: detalle.nombre_producto,
+        unidades: 0,
+        ventas: 0,
+        valor_vendido: 0,
+        ventasIds: new Set<number>(),
+      };
+      acumulado.unidades += Number(detalle.cantidad || 0);
+      acumulado.valor_vendido += Number(detalle.subtotal || 0);
+      acumulado.ventasIds.add(Number(venta.id));
+      productosPorId.set(productoId, acumulado);
+    }
   }
+
+  const productosVendidos = Array.from(productosPorId.values())
+    .map(({ ventasIds, ...producto }) => ({ ...producto, ventas: ventasIds.size }))
+    .sort((a, b) => b.unidades - a.unidades || a.nombre.localeCompare(b.nombre, "es"));
 
   const movimientosActuales: MovimientoFila[] = [];
   const movimientosAnteriores: MovimientoFila[] = [];
@@ -215,5 +258,6 @@ export async function obtenerContabilidad(parametros: {
       dinero: comparar(dinero, dineroAnterior),
     },
     evolucion,
+    productos_vendidos: productosVendidos,
   };
 }
